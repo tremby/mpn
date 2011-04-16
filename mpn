@@ -389,10 +389,15 @@ if __name__ == "__main__":
 		print "Failed to initialize pynotify module"
 		sys.exit(1)
         
-	MPN = Notifier(debug=options.debug, notify_timeout=options.timeout,
-		show_keys=options.keys, persist=options.persist, once=options.once,
-		title_format=options.title_format, body_format=options.body_format,
-		icon=options.default_icon)
+	MPN = Notifier(debug=options.debug,
+                       notify_timeout=options.timeout,
+                       show_keys=options.keys,
+                       persist=options.persist,
+                       once=options.once,
+                       title_format=options.title_format,
+                       body_format=options.body_format,
+                       icon=options.default_icon
+                       )
         
 	# fork if necessary
 	if options.fork and not options.debug:
