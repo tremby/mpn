@@ -22,7 +22,8 @@ The following python packages are needed:
 Configuration
 -------------
 
-MPNotifier will load the file `~/.mpnrc`, which a YAML file like this one:
+MPNotifier will load the file `~/.mpnrc`, which a YAML file like this
+one::
 
    daemon: False
    once: False
@@ -53,5 +54,6 @@ Licence
 MPNotifier is free software, released under the term of the GPLv2+.
 
 Copyright 2007-2010 Olivier Schwander ‹olivier.schwander@chadok.info>
+
 Copyright 2009-2010 Walther Maldonado <walther.md@gmail.com>
 
