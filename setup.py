@@ -6,7 +6,7 @@ with open('README') as file:
     long_description = file.read()
 
 setup(name             = 'MPNotifier',
-      version          = '1.0',
+      version          = '1.1',
       description      = 'A lightweigh notifier for MPD',
       long_description = long_description,
       author           = 'Olivier Schwander',

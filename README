@@ -4,7 +4,7 @@ MPNotifier
 Description
 -----------
 
-MPNotifier is a lightweight client for [MPD](http://www.musicpd.org)
+MPNotifier is a lightweight client for `MPD <http://www.musicpd.org>`_
 displaying a popup notification each time a new song is played by the
 server. This kind of notification is usual for most of graphical MPD
 clients but if you prefer to use a text-mode client like ncmpc, you need
@@ -44,16 +44,18 @@ arguments, see `mpn -h` for explanation.
 Download
 --------
 
-[Directly](http://chadok.info/mpn/mpn-1.0.tar.gz)
+On PyPI: http://pypi.python.org/pypi/MPNotifier
 
-[Darcs repository](http://chadok.info/darcs/mpn)
+Directly: http://chadok.info/mpn/MPNotifier-1.1.tar.gz
+
+Darcs repository: http://chadok.info/darcs/mpn
 
 Licence
 -------
 
 MPNotifier is free software, released under the term of the GPLv2+.
 
-Copyright 2007-2010 Olivier Schwander ‹olivier.schwander@chadok.info>
+Copyright 2007-2010 Olivier Schwander <olivier.schwander@chadok.info>
 
 Copyright 2009-2010 Walther Maldonado <walther.md@gmail.com>
 
