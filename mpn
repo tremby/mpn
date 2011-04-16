@@ -22,7 +22,7 @@
 # You will need pygtk, python-notify, python-mpdclient and python-gtk2
 
 # Usage:
-# Simply launch ./mpn.py or ./mpn.py -h for usage help
+# Simply launch mpn or mpn -h for usage help
 
 """Simple libnotify notifier for mpd"""
 
