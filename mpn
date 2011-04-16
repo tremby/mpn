@@ -295,9 +295,16 @@ class Notifier:
 			print "Title format: " + self.title_txt
 			print "Body format: " + self.body_txt
 		self.mpd = mpd.MPDClient()
-		if not self.connect():
-			print "Impossible to connect to server " + self.host
-			sys.exit(1)
+		while True:
+			# Connection loop in case network is down / resolution fails
+			self.host = self.get_host()
+			self.port = self.get_port()
+			if self.connect():
+				break
+			print "Failed to connect to server " + self.host
+			if not self.persist:
+				sys.exit(1)
+			time.sleep(5)
 
 if __name__ == "__main__":
         config = {
