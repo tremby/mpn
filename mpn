@@ -28,13 +28,13 @@
 
 import os, sys, cgi
 from optparse import Option, OptionParser, OptionGroup, SUPPRESS_HELP
+import re
+import socket
 
 import gobject
 import gtk
 import mpd
 import pynotify
-import re
-import socket
 import yaml
 
 format_title = "%t"
