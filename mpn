@@ -26,7 +26,7 @@
 
 """Simple libnotify notifier for mpd"""
 
-import os, sys, cgi
+import os, sys, cgi, time
 from optparse import Option, OptionParser, OptionGroup, SUPPRESS_HELP
 import re
 import socket
@@ -80,7 +80,6 @@ class Notifier:
 	keys = False
 	persist = False
 	once = False
-	refresh_time = 750 # in ms
 	host = "localhost"
 	port = 6600
 	mpd = None
@@ -250,16 +249,22 @@ class Notifier:
 		if not self.notifier.show():
 			print "Impossible to display the notification"
 			return False
-                
+
+		return True
+
+	def player_cb(self, mpd, condition):
+		mpd.fetch_idle()
+		self.notify()
+		mpd.send_idle('player')
 		return True
         
 	def run(self):
 		"""Launch the iteration"""
-		if (self.once):
-			self.notify()
-		else:
-			self.iterate_handler = gobject.timeout_add(self.refresh_time, self.notify)
-        
+		self.notify()
+		if not self.once:
+			self.mpd.send_idle('player')
+			gobject.io_add_watch(self.mpd, gobject.IO_IN, self.player_cb)
+
 	def close(self):
 		return self.disconnect()
         
@@ -289,8 +294,6 @@ class Notifier:
 		if self.debug:
 			print "Title format: " + self.title_txt
 			print "Body format: " + self.body_txt
-		self.host = self.get_host()
-		self.port = self.get_port()
 		self.mpd = mpd.MPDClient()
 		if not self.connect():
 			print "Impossible to connect to server " + self.host
