@@ -240,7 +240,7 @@ class Notifier:
 			self.connect()
 			return True
 		else:
-			print "mpn.py: Lost connection to server, exiting...\n"
+			print "mpn: Lost connection to server, exiting...\n"
 			sys.exit(1)
 			return False
 
