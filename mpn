@@ -3,6 +3,7 @@
 
 #     Copyright 2007-2011 Olivier Schwander <olivier.schwander@ens-lyon.org>
 #     Copyright 2009-2011 Walther Maldonado <walther.md@gmail.com>
+#     Copyright 2011 Bart Nagel <bart@tremby.net>
 
 #     This program is free software; you can redistribute it and/or modify
 #     it under the terms of the GNU General Public License as published by
@@ -20,6 +21,7 @@
 
 # Requirements:
 # You will need pygtk, python-notify, python-mpdclient and python-gtk2
+# python-imaging is recommended to enable album art resizing
 
 # Usage:
 # Simply launch mpn or mpn -h for usage help
@@ -74,6 +76,45 @@ def next_cb(n, action):
 		MPN.close()
 		gtk.main_quit()
 
+def fileexists_insensitive(path):
+	"""check if a file exists, case-insensitively for the last component (basename)"""
+	searchdir = os.path.dirname(path)
+	searchfile = os.path.basename(path).lower()
+	if not os.path.exists(searchdir):
+		return False
+	files = os.listdir(searchdir)
+	for file in files:
+		if file.lower() == searchfile:
+			return os.path.join(searchdir, file)
+	return False
+
+def possible_cover_filenames():
+	"""return a whole bunch of possible filenames for cover art"""
+	PREFIXES = [
+		"",
+		".",
+	]
+	MIDDLES = [
+		"cover",
+		"coverart",
+		"frontcover",
+		"front",
+		"albumart",
+		"albumcover",
+		"album",
+		"folder",
+	]
+	SUFFIXES = [
+		".png",
+		".jpg",
+	]
+	filenames = []
+	for pre in PREFIXES:
+		for mid in MIDDLES:
+			for suf in SUFFIXES:
+				filenames.append(pre + mid + suf)
+	return filenames
+
 class Notifier:
 	"Main class for mpn"
 	debug = False
@@ -89,7 +130,9 @@ class Notifier:
 	iterate_handler = None
 	title_txt = None
 	body_txt = None
-	icon_url = None
+	default_icon_url = None
+	icon_size = None
+	music_path = None
 	re_t = re.compile('(%t)', re.S) #Title
 	re_a = re.compile('(%a)', re.S) #Artist
 	re_b = re.compile('(%b)', re.S) #alBum
@@ -236,6 +279,28 @@ class Notifier:
 			body = self.re_b.sub(self.get_tag('album', True), body)
 			body = self.re_n.sub(self.get_tag('track'), body)
 			body = self.re_p.sub(self.get_tag('pos'), body)
+
+			icon_url = self.default_icon_url
+			if self.music_path is not None:
+				artist = self.get_tag("albumartist")
+				if not artist:
+					artist = self.get_tag("artist")
+				dirname = os.path.dirname(os.path.join(self.music_path, self.current["file"]))
+				for coverfilename in possible_cover_filenames():
+					coverpath = fileexists_insensitive(os.path.join(dirname, coverfilename))
+					if coverpath:
+						try:
+							import Image
+							import tempfile
+							im = Image.open(coverpath)
+							im2 = im.resize((self.icon_size, self.icon_size), Image.ANTIALIAS)
+							destination = os.path.join(tempfile.gettempdir(), "mpn.png")
+							im2.save(destination)
+							icon_url = destination
+						except ImportError:
+							icon_url = coverpath
+						break
+
 		except mpd.ConnectionError, (ce):
 			return self.reconnect()
 		except socket.error, (se):
@@ -245,7 +310,7 @@ class Notifier:
 		if self.debug:
 			print "Title string: " + title
 			print "Body string: " + body
-		self.notifier.update(title, body, self.icon_url)
+		self.notifier.update(title, body, icon_url)
 		if not self.notifier.show():
 			print "Impossible to display the notification"
 			return False
@@ -269,12 +334,15 @@ class Notifier:
 		return self.disconnect()
         
 	def __init__(self, debug=False, notify_timeout=3, show_keys=False,
-		persist=False, once=False, title_format=None, body_format=None, icon=None):
+		persist=False, once=False, title_format=None, body_format=None,
+		default_icon=None, icon_size=None, music_path=None):
 		"""Initialisation of mpd client and pynotify"""
 		self.debug = debug
 		self.persist = persist
 		self.once = once
-		self.icon_url = icon
+		self.default_icon_url = default_icon
+		self.icon_size = icon_size
+		self.music_path = music_path
 		# Contents are updated before displaying
 		self.notifier = pynotify.Notification("MPN")
                 
@@ -315,6 +383,8 @@ if __name__ == "__main__":
                 "timeout": 3,
                 "keys": True,
                 "icon": "gnome-mime-audio",
+                "icon_size": 128,
+                "music_path": "/var/lib/mpd/music",
                 "title": "%t",
                 "body": "<b>%b</b><br><i>%a</i>"
                 }
@@ -357,8 +427,14 @@ if __name__ == "__main__":
 		default=config['once'], help="Notify once and exit")
         
 	parser.add_option("-i", "--icon", dest="default_icon", default=config['icon'],
-		help="Icon URI/name (default: %default)")
+		help="Default icon URI/name (default: %default)")
         
+	parser.add_option("-s", "--icon-size", type="int", dest="icon_size", default=config['icon_size'],
+		help="Size in pixels to which the cover art should be resized (default: %default)")
+
+	parser.add_option("-m", "--music-path", dest="music_path", default=config["music_path"],
+		help="Path to music files, where album art will be looked for (default: %default)")
+
 	# Format strings
 	group = OptionGroup(parser, "Format related options for the notify display",
 		"Supported wildcards:"
@@ -396,7 +472,9 @@ if __name__ == "__main__":
                        once=options.once,
                        title_format=options.title_format,
                        body_format=options.body_format,
-                       icon=options.default_icon
+                       default_icon=options.default_icon,
+                       icon_size=options.icon_size,
+                       music_path=options.music_path
                        )
         
 	# fork if necessary
