@@ -47,10 +47,6 @@ import mpd
 import pynotify
 import yaml
 
-format_title = "%t"
-format_body = "<b>%b</b><br><i>%a</i>"
-default_icon = "gnome-mime-audio"
-
 MPN = None
 def convert_time(raw):
 	"""Format a number of seconds to the hh:mm:ss format"""
@@ -69,18 +65,18 @@ def convert_time(raw):
 		return hour + ':' + minutes + ':' + sec
 
 def prev_cb(n, action):
-	if MPN.debug:
+	if MPN.options.debug:
 		print "Previous song"
 	MPN.mpd.previous()
-	if MPN.once:
+	if MPN.options.once:
 		MPN.close()
 		gtk.main_quit()
 
 def next_cb(n, action):
-	if MPN.debug:
+	if MPN.options.debug:
 		print "Next song"
 	MPN.mpd.next()
-	if MPN.once:
+	if MPN.options.once:
 		MPN.close()
 		gtk.main_quit()
 
@@ -125,10 +121,7 @@ def possible_cover_filenames():
 
 class Notifier:
 	"Main class for mpn"
-	debug = False
-	keys = False
-	persist = False
-	once = False
+	options = None
 	host = "localhost"
 	port = 6600
 	mpd = None
@@ -138,9 +131,6 @@ class Notifier:
 	iterate_handler = None
 	title_txt = None
 	body_txt = None
-	default_icon_url = None
-	icon_size = None
-	music_path = None
 	re_t = re.compile('(%t)', re.S) #Title
 	re_a = re.compile('(%a)', re.S) #Artist
 	re_b = re.compile('(%b)', re.S) #alBum
@@ -172,7 +162,7 @@ class Notifier:
 			title = self.get_file(safe)
 			if title == "":
 				title = "???"
-		if self.debug:
+		if self.options.debug:
 			print "Title :" + title
 		if safe:
 			return cgi.escape(title)
@@ -185,7 +175,7 @@ class Notifier:
 		now_time = convert_time(now)
 		length_time = convert_time(length)
 
-		if self.debug:
+		if self.options.debug:
 			print "Position : " + now_time + " / " + length_time
 		if elapsed:
 			return now_time
@@ -200,7 +190,7 @@ class Notifier:
 				data = " / ".join(data)
 		except KeyError:
 			data = ""
-		if self.debug:
+		if self.options.debug:
 			print tag + ": " + data
 		if safe:
 			return cgi.escape(data)
@@ -216,7 +206,7 @@ class Notifier:
 			file = re.sub("(.*)\..*", "\\1", file)
 		except KeyError:
 			file = ""
-		if self.debug:
+		if self.options.debug:
 			print "Filename: " + file
 		if safe:
 			return cgi.escape(file)
@@ -244,7 +234,7 @@ class Notifier:
 	def reconnect(self):
 		# Ugly, but there's no mpd.isconnected() method
 		self.disconnect()
-		if self.persist:
+		if self.options.persist:
 			self.connect()
 			return True
 		else:
@@ -259,7 +249,7 @@ class Notifier:
 
 			# only if there is a song currently playing
 			if not self.status["state"] in ['play', 'pause']:
-				if self.debug:
+				if self.options.debug:
 					print "No files playing on the server." + self.host
 				return True
 
@@ -288,12 +278,12 @@ class Notifier:
 			body = self.re_n.sub(self.get_tag('track'), body)
 			body = self.re_p.sub(self.get_tag('pos'), body)
 
-			icon_url = self.default_icon_url
-			if self.music_path is not None:
+			icon_url = self.options.default_icon
+			if self.options.music_path is not None:
 				artist = self.get_tag("albumartist")
 				if not artist:
 					artist = self.get_tag("artist")
-				dirname = os.path.dirname(os.path.join(self.music_path, self.current["file"]))
+				dirname = os.path.dirname(os.path.join(self.options.music_path, self.current["file"]))
 				for coverfilename in possible_cover_filenames():
 					coverpath = fileexists_insensitive(os.path.join(dirname, coverfilename))
 					if coverpath:
@@ -301,7 +291,7 @@ class Notifier:
 							import Image
 							import tempfile
 							im = Image.open(coverpath)
-							im2 = im.resize((self.icon_size, self.icon_size), Image.ANTIALIAS)
+							im2 = im.resize((self.options.icon_size, self.options.icon_size), Image.ANTIALIAS)
 							destination = os.path.join(tempfile.gettempdir(), "mpn.png")
 							im2.save(destination)
 							icon_url = destination
@@ -315,7 +305,7 @@ class Notifier:
 			return self.reconnect()
 
 		# set paramaters and display the notice
-		if self.debug:
+		if self.options.debug:
 			print "Title string: " + title
 			print "Body string: " + body
 		self.notifier.update(title, body, icon_url)
@@ -334,40 +324,34 @@ class Notifier:
 	def run(self):
 		"""Launch the iteration"""
 		self.notify()
-		if not self.once:
+		if not self.options.once:
 			self.mpd.send_idle('player')
 			gobject.io_add_watch(self.mpd, gobject.IO_IN, self.player_cb)
 
 	def close(self):
 		return self.disconnect()
 
-	def __init__(self, debug=False, notify_timeout=3, show_keys=False,
-		persist=False, once=False, title_format=None, body_format=None,
-		default_icon=None, icon_size=None, music_path=None):
+	def __init__(self, options):
 		"""Initialisation of mpd client and pynotify"""
-		self.debug = debug
-		self.persist = persist
-		self.once = once
-		self.default_icon_url = default_icon
-		self.icon_size = icon_size
-		self.music_path = music_path
+		self.options = options
+
 		# Contents are updated before displaying
 		self.notifier = pynotify.Notification("MPN")
 
-		# param notify_timeout is in seconds
-		if notify_timeout == 0:
+		# param timeout is in seconds
+		if self.options.timeout == 0:
 			self.notifier.set_timeout(pynotify.EXPIRES_NEVER)
 		else:
-			self.notifier.set_timeout(1000 * notify_timeout)
+			self.notifier.set_timeout(1000 * self.options.timeout)
 
-		if show_keys:
+		if self.options.keys:
 			self.notifier.add_action("back", "&lt;&lt;", prev_cb)
 			self.notifier.add_action("forward", "&gt;&gt;", next_cb)
 
-		self.title_txt = re.sub("<br>", "\n", title_format)
-		self.body_txt = re.sub("<br>", "\n", body_format)
+		self.title_txt = re.sub("<br>", "\n", self.options.title_format)
+		self.body_txt = re.sub("<br>", "\n", self.options.body_format)
 
-		if self.debug:
+		if self.options.debug:
 			print "Title format: " + self.title_txt
 			print "Body format: " + self.body_txt
 		self.mpd = mpd.MPDClient()
@@ -378,32 +362,32 @@ class Notifier:
 			if self.connect():
 				break
 			print "Failed to connect to server " + self.host
-			if not self.persist:
+			if not self.options.persist:
 				sys.exit(1)
 			time.sleep(5)
 
 if __name__ == "__main__":
-	config = {
+	default_options = {
 		"daemon": False,
 		"once": False,
 		"debug": False,
 		"persist": True,
 		"timeout": 3,
 		"keys": True,
-		"icon": "gnome-mime-audio",
+		"default_icon": "gnome-mime-audio",
 		"icon_size": 128,
 		"music_path": "/var/lib/mpd/music",
-		"title": "%t",
-		"body": "<b>%b</b><br><i>%a</i>"
+		"title_format": "%t",
+		"body_format": "<b>%b</b><br><i>%a</i>",
 		}
 	try:
 		stream = file(os.path.expanduser('~/.mpnrc'), 'r')
-		config.update(yaml.load(stream))
+		default_options.update(yaml.load(stream))
 		stream.close()
 	except IOError:
 		try:
 			stream = file('mpnrc', 'r')
-			config.update(yaml.load(stream))
+			default_options.update(yaml.load(stream))
 			stream.close()
 		except IOError:
 			pass
@@ -411,39 +395,36 @@ if __name__ == "__main__":
 	# initializate the argument parser
 	parser = OptionParser()
 
-	# help/debug mode
-	parser.add_option("--debug", action="store_true", dest="debug",
-		default=config['debug'], help="Turn on debugging information")
+	parser.add_option("--debug", action="store_true", 
+			default=default_options['debug'],
+			help="Turn on debugging information")
+	parser.add_option("-d", "--daemon", action="store_true", 
+			default=default_options['daemon'],
+			help="Fork into the background")
+	parser.add_option("-p", "--persist", action="store_true", 
+			default=default_options['persist'],
+			help="Do not exit when connection fails")
+	parser.add_option("-t", "--timeout", type="int", 
+			default=default_options['timeout'],
+			help="Notification timeout in secs (use 0 to disable)")
+	parser.add_option("-k", "--keys", action="store_true", 
+			default=default_options['keys'],
+			help="Add Prev/Next buttons to notify window")
+	parser.add_option("-o", "--once", action="store_true", 
+			default=default_options['once'],
+			help="Notify once and exit")
+	parser.add_option("-i", "--default-icon", 
+			default=default_options['default_icon'],
+			help="Default icon URI/name (default: %default)")
+	parser.add_option("-s", "--icon-size", type="int", 
+			default=default_options['icon_size'],
+			help="Size in pixels to which the cover art should be resized "
+					"(default: %default)")
+	parser.add_option("-m", "--music-path", 
+			default=default_options["music_path"],
+			help="Path to music files, where album art will be looked for "
+					"(default: %default)")
 
-	# does mpn will fork ?
-	parser.add_option("-d", "--daemon", action="store_true", dest="fork",
-		default=config['daemon'], help="Fork into the background")
-
-	parser.add_option("-p", "--persist", action="store_true", dest="persist",
-		default=config['persist'], help="Do not exit when connection fails")
-
-	# how many time the notice will be shown
-	parser.add_option("-t", "--timeout", type="int", dest="timeout", default=config['timeout'],
-		help="Notification timeout in secs (use 0 to disable)")
-
-	# display next/prev keys on popup dialog
-	parser.add_option("-k", "--keys", action="store_true", dest="keys",
-		default=config['keys'], help="Add Prev/Next buttons to notify window")
-
-	# whether to print updates on all song changes
-	parser.add_option("-o", "--once", action="store_true", dest="once",
-		default=config['once'], help="Notify once and exit")
-
-	parser.add_option("-i", "--icon", dest="default_icon", default=config['icon'],
-		help="Default icon URI/name (default: %default)")
-
-	parser.add_option("-s", "--icon-size", type="int", dest="icon_size", default=config['icon_size'],
-		help="Size in pixels to which the cover art should be resized (default: %default)")
-
-	parser.add_option("-m", "--music-path", dest="music_path", default=config["music_path"],
-		help="Path to music files, where album art will be looked for (default: %default)")
-
-	# Format strings
 	group = OptionGroup(parser, "Format related options for the notify display",
 		"Supported wildcards:"
 		" %t title /"
@@ -456,13 +437,10 @@ if __name__ == "__main__":
 		" <i> </i> italic text /"
 		" <b> </b> bold text /"
 		" <br> line break")
-
-	group.add_option("-F", "--title", dest="title_format", default=config['title'],
+	group.add_option("-F", "--title-format", default=default_options['title_format'],
 		help="Format for the notify header")
-
-	group.add_option("-f", "--body", dest="body_format", default=config['body'],
+	group.add_option("-f", "--body-format", default=default_options['body_format'],
 		help="Format for the notify body")
-
 	parser.add_option_group(group)
 
 	# parse the commandline
@@ -473,20 +451,10 @@ if __name__ == "__main__":
 		print "Failed to initialize pynotify module"
 		sys.exit(1)
 
-	MPN = Notifier(debug=options.debug,
-			notify_timeout=options.timeout,
-			show_keys=options.keys,
-			persist=options.persist,
-			once=options.once,
-			title_format=options.title_format,
-			body_format=options.body_format,
-			default_icon=options.default_icon,
-			icon_size=options.icon_size,
-			music_path=options.music_path,
-			)
+	MPN = Notifier(options=options)
 
 	# fork if necessary
-	if options.fork and not options.debug:
+	if options.daemon and not options.debug:
 		if os.fork() != 0:
 			sys.exit(0)
 

@@ -4,10 +4,11 @@ debug: False
 persist: True
 timeout: 3
 keys: True
-icon: gnome-mime-audio
-title: >-
+default_icon: gnome-mime-audio
+icon_size: 128
+music_path: /var/lib/mpd/music
+title_format: >-
   %t
-body: >-
+body_format: >-
   <b>%b</b>
   <i>%a</i>
-
