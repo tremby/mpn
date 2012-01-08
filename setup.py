@@ -12,7 +12,7 @@ setup(name             = 'MPNotifier',
       author           = 'Olivier Schwander',
       author_email     = 'olivier.schwander@chadok.info',
       url              = 'http://chadok.info/mpn',
-      scripts          = ['mpn'],
+      scripts          = ['mpn.py'],
       classifiers  = [
         'Intended Audience :: End Users/Desktop',
         'License :: OSI Approved :: GNU General Public License (GPL)',
