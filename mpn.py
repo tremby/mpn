@@ -29,11 +29,11 @@
 """Simple libnotify notifier for mpd"""
 
 NAME = "MPNotifier"
-VERSION = "1.1"
+VERSION = "1.2~git"
 DESCRIPTION = "A lightweight notifier for MPD"
-AUTHOR = "Olivier Schwander"
-AUTHOR_EMAIL = "olivier.schwander@chadok.info"
-URL = "http://chadok.info/mpn"
+AUTHOR = "Olivier Schwander, Bart Nagel"
+AUTHOR_EMAIL = "olivier.schwander@chadok.info, bart@tremby.net"
+URL = "https://github.com/tremby/mpn"
 
 import os, sys, cgi, time
 from optparse import Option, OptionParser, OptionGroup, SUPPRESS_HELP

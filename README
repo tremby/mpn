@@ -10,6 +10,8 @@ server. This kind of notification is usual for most of graphical MPD
 clients but if you prefer to use a text-mode client like ncmpc, you need
 to use a third-party tool like MPNotifier.
 
+This version is a fork by Bart Nagel.
+
 Prerequisite
 ------------
 
@@ -50,20 +52,21 @@ arguments, see `mpn -h` for explanation.
 Download
 --------
 
-On PyPI: http://pypi.python.org/pypi/MPNotifier
+### This fork
 
-Directly: http://chadok.info/mpn/MPNotifier-1.1.tar.gz
+- At Github: https://github.com/tremby/mpn
 
-Darcs repository: http://chadok.info/darcs/mpn
+### Original MPN
+
+- On PyPI: http://pypi.python.org/pypi/MPNotifier
+- Directly: http://chadok.info/mpn/MPNotifier-1.1.tar.gz
+- Darcs repository: http://chadok.info/darcs/mpn
 
 Licence
 -------
 
 MPNotifier is free software, released under the term of the GPLv2+.
 
-Copyright 2007-2010 Olivier Schwander <olivier.schwander@chadok.info>
-
-Copyright 2009-2010 Walther Maldonado <walther.md@gmail.com>
-
-Copyright 2011 Bart Nagel <bart@tremby.net>
-
+- Copyright 2007-2010 Olivier Schwander <olivier.schwander@chadok.info>
+- Copyright 2009-2010 Walther Maldonado <walther.md@gmail.com>
+- Copyright 2011 Bart Nagel <bart@tremby.net>
