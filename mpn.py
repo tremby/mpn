@@ -1,32 +1,33 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-#     Copyright 2007-2011 Olivier Schwander <olivier.schwander@ens-lyon.org>
-#     Copyright 2009-2011 Walther Maldonado <walther.md@gmail.com>
-#     Copyright 2011 Bart Nagel <bart@tremby.net>
+"""
+Copyright 2007-2011 Olivier Schwander <olivier.schwander@ens-lyon.org>
+Copyright 2009-2011 Walther Maldonado <walther.md@gmail.com>
+Copyright 2011 Bart Nagel <bart@tremby.net>
 
-#     This program is free software; you can redistribute it and/or modify
-#     it under the terms of the GNU General Public License as published by
-#     the Free Software Foundation; either version 2 of the License, or
-#     (at your option) any later version.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
 
-#     This program is distributed in the hope that it will be useful,
-#     but WITHOUT ANY WARRANTY; without even the implied warranty of
-#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#     GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-#     You should have received a copy of the GNU General Public License
-#     along with this program; if not, write to the Free Software
-#     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-# Requirements:
-# You will need pygtk, python-notify, python-mpdclient and python-gtk2
-# python-imaging is recommended to enable album art resizing
+Requirements:
+You will need pygtk, python-notify, python-mpdclient and python-gtk2
+python-imaging is recommended to enable album art resizing
 
-# Usage:
-# Simply launch mpn or mpn -h for usage help
+Usage:
+Simply launch mpn or mpn -h for usage help
 
-"""Simple libnotify notifier for mpd"""
+"""
 
 NAME = "MPNotifier"
 VERSION = "1.2~git"
@@ -473,16 +474,16 @@ if __name__ == "__main__":
 		sys.exit(1)
 
 	MPN = Notifier(debug=options.debug,
-		       notify_timeout=options.timeout,
-		       show_keys=options.keys,
-		       persist=options.persist,
-		       once=options.once,
-		       title_format=options.title_format,
-		       body_format=options.body_format,
-		       default_icon=options.default_icon,
-		       icon_size=options.icon_size,
-		       music_path=options.music_path
-		       )
+			notify_timeout=options.timeout,
+			show_keys=options.keys,
+			persist=options.persist,
+			once=options.once,
+			title_format=options.title_format,
+			body_format=options.body_format,
+			default_icon=options.default_icon,
+			icon_size=options.icon_size,
+			music_path=options.music_path,
+			)
 
 	# fork if necessary
 	if options.fork and not options.debug:
