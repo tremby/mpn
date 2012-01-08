@@ -308,6 +308,10 @@ class Notifier:
 		if self.options.debug:
 			print "Title string: " + title
 			print "Body string: " + body
+
+		if self.options.status_icon and not self.options.once:
+			self.status_icon.set_tooltip(re.sub("<.*?>", "", "%s\n%s" % (title, body)))
+
 		self.notifier.update(title, body, icon_url)
 		if not self.notifier.show():
 			print "Impossible to display the notification"
@@ -355,6 +359,15 @@ class Notifier:
 			print "Title format: " + self.title_txt
 			print "Body format: " + self.body_txt
 		self.mpd = mpd.MPDClient()
+
+		if self.options.status_icon and not self.options.once:
+			self.status_icon = gtk.StatusIcon()
+			self.status_icon.connect("activate", self.on_activate)
+			self.status_icon.connect("popup_menu", self.on_popup_menu)
+			self.status_icon.set_from_stock(gtk.STOCK_CDROM) # TODO: change this
+			self.status_icon.set_tooltip("MPN")
+			self.status_icon.set_visible(True)
+
 		while True:
 			# Connection loop in case network is down / resolution fails
 			self.host = self.get_host()
@@ -365,6 +378,40 @@ class Notifier:
 			if not self.options.persist:
 				sys.exit(1)
 			time.sleep(5)
+
+	def on_activate(self, icon, data=None):
+		self.critical_notification_closed = False
+		if self.status["state"] in ['play', 'pause']:
+			self.notifier.show()
+
+	def on_popup_menu(self, icon, button, time):
+		menu = gtk.Menu()
+
+		about = gtk.ImageMenuItem(gtk.STOCK_ABOUT)
+		about.connect("activate", self.show_about_dialog)
+		menu.append(about)
+		quit = gtk.ImageMenuItem(gtk.STOCK_QUIT)
+		quit.connect("activate", gtk.main_quit)
+		menu.append(quit)
+
+		menu.show_all()
+		menu.popup(None, None, gtk.status_icon_position_menu, button, time, 
+				self.status_icon)
+
+	def show_about_dialog(self, widget):
+		about_dialog = gtk.AboutDialog()
+
+		about_dialog.set_destroy_with_parent(True)
+		about_dialog.set_name("MPN")
+		about_dialog.set_version(VERSION)
+
+		authors = []
+		for i, n in enumerate(AUTHOR.split(", ")):
+			authors.append(n + " <" + AUTHOR_EMAIL.split(", ")[i] + ">")
+		about_dialog.set_authors(authors)
+
+		about_dialog.run()
+		about_dialog.destroy()
 
 if __name__ == "__main__":
 	default_options = {
@@ -379,6 +426,7 @@ if __name__ == "__main__":
 		"music_path": "/var/lib/mpd/music",
 		"title_format": "%t",
 		"body_format": "<b>%b</b><br><i>%a</i>",
+		"status_icon": True,
 		}
 	try:
 		stream = file(os.path.expanduser('~/.mpnrc'), 'r')
@@ -424,6 +472,12 @@ if __name__ == "__main__":
 			default=default_options["music_path"],
 			help="Path to music files, where album art will be looked for "
 					"(default: %default)")
+	parser.add_option("--status-icon", action="store_true", 
+			default=default_options['status_icon'],
+			help="Enable status icon")
+	parser.add_option("--no-status-icon", dest="status_icon", 
+			action="store_false", default=default_options['status_icon'],
+			help="Disable status icon")
 
 	group = OptionGroup(parser, "Format related options for the notify display",
 		"Supported wildcards:"
