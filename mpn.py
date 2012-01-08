@@ -53,7 +53,7 @@ def convert_time(raw):
 	# Converts raw time to 'hh:mm:ss' with leading zeros as appropriate
 
 	hour, minutes, sec = ['%02d' % c for c in (raw/3600,
-	(raw%3600)/60, raw%60)]
+			(raw%3600)/60, raw%60)]
 
 	if hour == '00':
 		if minutes.startswith('0'):
