@@ -28,6 +28,13 @@
 
 """Simple libnotify notifier for mpd"""
 
+NAME = "MPNotifier"
+VERSION = "1.1"
+DESCRIPTION = "A lightweight notifier for MPD"
+AUTHOR = "Olivier Schwander"
+AUTHOR_EMAIL = "olivier.schwander@chadok.info"
+URL = "http://chadok.info/mpn"
+
 import os, sys, cgi, time
 from optparse import Option, OptionParser, OptionGroup, SUPPRESS_HELP
 import re

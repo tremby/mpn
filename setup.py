@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 
 from distutils.core import setup
+import mpn
 
 with open('README') as file:
     long_description = file.read()
 
-setup(name             = 'MPNotifier',
-      version          = '1.1',
-      description      = 'A lightweigh notifier for MPD',
+setup(name             = mpn.NAME,
+      version          = mpn.VERSION,
+      description      = mpn.DESCRIPTION,
       long_description = long_description,
-      author           = 'Olivier Schwander',
-      author_email     = 'olivier.schwander@chadok.info',
-      url              = 'http://chadok.info/mpn',
+      author           = mpn.AUTHOR,
+      author_email     = mpn.AUTHOR_EMAIL,
+      url              = mpn.URL,
       scripts          = ['mpn.py'],
       classifiers  = [
         'Intended Audience :: End Users/Desktop',
