@@ -7,7 +7,8 @@ Description
 MPNotifier is a lightweight client for [MPD](http://www.musicpd.org) displaying 
 a popup notification each time a new song is played by the server. This kind of 
 notification is usual for most graphical MPD clients but if you prefer to use a 
-text-mode client like ncmpc or pms, you need to use separate tool like 
+text-mode client like [ncmpc](http://mpd.wikia.com/wiki/Client:Ncmpc) or 
+[pms](http://pms.sourceforge.net/), you need to use separate tool like 
 MPNotifier.
 
 This version is a fork by Bart Nagel.
