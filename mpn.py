@@ -508,7 +508,7 @@ if __name__ == "__main__":
 	parser.add_option("-p", "--persist", action="store_true", 
 			default=default_options['persist'],
 			help="Do not exit when connection fails")
-	parser.add_option("-t", "--timeout", type="int", 
+	parser.add_option("-t", "--timeout", type="int", metavar="SECS", 
 			default=default_options['timeout'],
 			help="Notification timeout in secs (use 0 to disable)")
 	parser.add_option("-k", "--keys", action="store_true", 
@@ -517,14 +517,14 @@ if __name__ == "__main__":
 	parser.add_option("-o", "--once", action="store_true", 
 			default=default_options['once'],
 			help="Notify once and exit")
-	parser.add_option("-i", "--default-icon", 
+	parser.add_option("-i", "--default-icon", metavar="ICON", 
 			default=default_options['default_icon'],
 			help="Default icon URI/name (default: %default)")
-	parser.add_option("-s", "--icon-size", type="int", 
+	parser.add_option("-s", "--icon-size", type="int", metavar="PIXELS", 
 			default=default_options['icon_size'],
 			help="Size in pixels to which the cover art should be resized "
 					"(default: %default)")
-	parser.add_option("-m", "--music-path", 
+	parser.add_option("-m", "--music-path", metavar="PATH", 
 			default=default_options["music_path"],
 			help="Path to music files, where album art will be looked for "
 					"(default: %default)")
@@ -535,22 +535,25 @@ if __name__ == "__main__":
 			action="store_false", default=default_options['status_icon'],
 			help="Disable status icon")
 
-	group = OptionGroup(parser, "Format related options for the notify display",
-		"Supported wildcards:"
-		" %t title /"
-		" %a artist /"
-		" %b album /"
-		" %d song duration /"
-		" %f base filename /"
-		" %n track number /"
-		" %p playlist position /"
-		" <i> </i> italic text /"
-		" <b> </b> bold text /"
-		" <br> line break")
-	group.add_option("-F", "--title-format", default=default_options['title_format'],
-		help="Format for the notify header")
-	group.add_option("-f", "--body-format", default=default_options['body_format'],
-		help="Format for the notify body")
+	group = OptionGroup(parser,
+			"Format related options for the notification display",
+			"Supported wildcards:"
+			" %t title /"
+			" %a artist /"
+			" %b album /"
+			" %d song duration /"
+			" %f base filename /"
+			" %n track number /"
+			" %p playlist position /"
+			" <i> </i> italic text /"
+			" <b> </b> bold text /"
+			" <br> line break")
+	group.add_option("-F", "--title-format", 
+			default=default_options['title_format'], metavar="FORMAT",
+			help="Format for the notification header")
+	group.add_option("-f", "--body-format", 
+			default=default_options['body_format'], metavar="FORMAT",
+			help="Format for the notification body")
 	parser.add_option_group(group)
 
 	# parse the commandline
