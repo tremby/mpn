@@ -46,6 +46,7 @@ import gtk
 import mpd
 import pynotify
 import yaml
+import signal
 
 MPN = None
 def convert_time(raw):
@@ -368,6 +369,11 @@ class Notifier:
 			self.status_icon.set_tooltip("MPN")
 			self.status_icon.set_visible(True)
 
+		if not self.options.once:
+			def handle_signal_usr1(*args, **kwargs):
+				self.on_activate()
+			signal.signal(signal.SIGUSR1, handle_signal_usr1)
+
 		while True:
 			# Connection loop in case network is down / resolution fails
 			self.host = self.get_host()
@@ -379,7 +385,7 @@ class Notifier:
 				sys.exit(1)
 			time.sleep(5)
 
-	def on_activate(self, icon, data=None):
+	def on_activate(self, *args, **kwargs):
 		if self.status["state"] in ['play', 'pause']:
 			self.notifier.show()
 
@@ -440,7 +446,8 @@ if __name__ == "__main__":
 			pass
 
 	# initializate the argument parser
-	parser = OptionParser()
+	parser = OptionParser(epilog="Send the USR1 signal to a running MPN process to display a "
+					"notification, for instance from a keyboard shortcut")
 
 	parser.add_option("--debug", action="store_true", 
 			default=default_options['debug'],
