@@ -29,9 +29,9 @@ The following python packages are recommended:
 Configuration
 -------------
 
-Options can be given on the command line (see `mpn.py --help` for details) or in 
-a configuration file (or both). Command line options override anything given in 
-a configuration file, which obviously in turn overwrite the defaults.
+Options can be given on the command line (see `mpn --help` for details) or in a 
+configuration file (or both). Command line options override anything given in a 
+configuration file, which obviously in turn overwrite the defaults.
 
 MPNotifier will load the file `~/.mpnrc` if it exists, which is a YAML file like 
 this:
@@ -49,12 +49,12 @@ this:
 If that file doesn't exist, `mpnrc` in the current directory is also tried.
 
 None of the configuration keys are required, and any given settings override the 
-defaults. The defaults can be shown by running `mpn.py --show-defaults`. That 
-YAML output can be used as the starting point for a configuration file.
+defaults. The defaults can be shown by running `mpn --show-defaults`. That YAML 
+output can be used as the starting point for a configuration file.
 
 The fields have the same names as the long forms of the command line arguments, 
 but with underscores instead of hyphens. Full details can be found in the help 
-text (`mpn.py --help`), in which the defaults are shown *after* the influence of 
+text (`mpn --help`), in which the defaults are shown *after* the influence of 
 any configuration file.
 
 Download

@@ -28,6 +28,7 @@ DESCRIPTION = "A lightweight notifier for MPD"
 AUTHOR = "Olivier Schwander, Bart Nagel"
 AUTHOR_EMAIL = "olivier.schwander@chadok.info, bart@tremby.net"
 URL = "https://github.com/tremby/mpn"
+LICENSE = "GNU GPLv2+"
 
 import os, sys, cgi, time
 from optparse import Option, OptionParser, OptionGroup, SUPPRESS_HELP
@@ -474,114 +475,119 @@ DEFAULT_OPTIONS = {
 	"status_icon": True,
 	}
 
-if __name__ == "__main__":
-	default_options = {}
-	default_options.update(DEFAULT_OPTIONS)
-	try:
-		stream = file(os.path.expanduser('~/.mpnrc'), 'r')
-		default_options.update(yaml.load(stream))
-		stream.close()
-	except IOError:
+class Application:
+	def run(self):
+		default_options = {}
+		default_options.update(DEFAULT_OPTIONS)
 		try:
-			stream = file('mpnrc', 'r')
+			stream = file(os.path.expanduser('~/.mpnrc'), 'r')
 			default_options.update(yaml.load(stream))
 			stream.close()
 		except IOError:
-			pass
+			try:
+				stream = file('mpnrc', 'r')
+				default_options.update(yaml.load(stream))
+				stream.close()
+			except IOError:
+				pass
 
-	# initializate the argument parser
-	parser = OptionParser(version="%prog " + VERSION, description=DESCRIPTION, 
-			epilog="Defaults shown are after the influence of any "
-					"configuration file. Send the USR1 signal to a running MPN "
-					"process to display a notification, for instance from a "
-					"keyboard shortcut")
+		# initializate the argument parser
+		parser = OptionParser(version="%prog " + VERSION, description=DESCRIPTION, 
+				epilog="Defaults shown are after the influence of any "
+						"configuration file. Send the USR1 signal to a running MPN "
+						"process to display a notification, for instance from a "
+						"keyboard shortcut")
 
-	parser.add_option("--show-defaults", action="store_true",
-			help="Dump YAML of the default options, suitable for use as a "
-					"~/.mpnrc file, and exit")
-	parser.add_option("--debug", action="store_true", 
-			default=default_options['debug'],
-			help="Turn on debugging information")
-	parser.add_option("-d", "--daemon", action="store_true", 
-			default=default_options['daemon'],
-			help="Fork into the background")
-	parser.add_option("-p", "--persist", action="store_true", 
-			default=default_options['persist'],
-			help="Do not exit when connection fails")
-	parser.add_option("-t", "--timeout", type="int", metavar="SECS", 
-			default=default_options['timeout'],
-			help="Notification timeout in secs (use 0 to disable)")
-	parser.add_option("-k", "--keys", action="store_true", 
-			default=default_options['keys'],
-			help="Add Prev/Next buttons to notify window")
-	parser.add_option("-o", "--once", action="store_true", 
-			default=default_options['once'],
-			help="Notify once and exit")
-	parser.add_option("-i", "--default-icon", metavar="ICON", 
-			default=default_options['default_icon'],
-			help="Default icon URI/name (default: %default)")
-	parser.add_option("-s", "--icon-size", type="int", metavar="PIXELS", 
-			default=default_options['icon_size'],
-			help="Size in pixels to which the cover art should be resized "
-					"(default: %default)")
-	parser.add_option("-m", "--music-path", metavar="PATH", 
-			default=default_options["music_path"],
-			help="Path to music files, where album art will be looked for "
-					"(default: %default)")
-	parser.add_option("--status-icon", action="store_true", 
-			default=default_options['status_icon'],
-			help="Enable status icon")
-	parser.add_option("--no-status-icon", dest="status_icon", 
-			action="store_false", default=default_options['status_icon'],
-			help="Disable status icon")
+		parser.add_option("--show-defaults", action="store_true",
+				help="Dump YAML of the default options, suitable for use as a "
+						"~/.mpnrc file, and exit")
+		parser.add_option("--debug", action="store_true", 
+				default=default_options['debug'],
+				help="Turn on debugging information")
+		parser.add_option("-d", "--daemon", action="store_true", 
+				default=default_options['daemon'],
+				help="Fork into the background")
+		parser.add_option("-p", "--persist", action="store_true", 
+				default=default_options['persist'],
+				help="Do not exit when connection fails")
+		parser.add_option("-t", "--timeout", type="int", metavar="SECS", 
+				default=default_options['timeout'],
+				help="Notification timeout in secs (use 0 to disable)")
+		parser.add_option("-k", "--keys", action="store_true", 
+				default=default_options['keys'],
+				help="Add Prev/Next buttons to notify window")
+		parser.add_option("-o", "--once", action="store_true", 
+				default=default_options['once'],
+				help="Notify once and exit")
+		parser.add_option("-i", "--default-icon", metavar="ICON", 
+				default=default_options['default_icon'],
+				help="Default icon URI/name (default: %default)")
+		parser.add_option("-s", "--icon-size", type="int", metavar="PIXELS", 
+				default=default_options['icon_size'],
+				help="Size in pixels to which the cover art should be resized "
+						"(default: %default)")
+		parser.add_option("-m", "--music-path", metavar="PATH", 
+				default=default_options["music_path"],
+				help="Path to music files, where album art will be looked for "
+						"(default: %default)")
+		parser.add_option("--status-icon", action="store_true", 
+				default=default_options['status_icon'],
+				help="Enable status icon")
+		parser.add_option("--no-status-icon", dest="status_icon", 
+				action="store_false", default=default_options['status_icon'],
+				help="Disable status icon")
 
-	group = OptionGroup(parser,
-			"Format related options for the notification display",
-			"Supported wildcards:"
-			" %t title /"
-			" %a artist /"
-			" %b album /"
-			" %d song duration /"
-			" %f base filename /"
-			" %n track number /"
-			" %p playlist position /"
-			" <i> </i> italic text /"
-			" <b> </b> bold text /"
-			" <br> line break")
-	group.add_option("-F", "--title-format", 
-			default=default_options['title_format'], metavar="FORMAT",
-			help="Format for the notification header")
-	group.add_option("-f", "--body-format", 
-			default=default_options['body_format'], metavar="FORMAT",
-			help="Format for the notification body")
-	parser.add_option_group(group)
+		group = OptionGroup(parser,
+				"Format related options for the notification display",
+				"Supported wildcards:"
+				" %t title /"
+				" %a artist /"
+				" %b album /"
+				" %d song duration /"
+				" %f base filename /"
+				" %n track number /"
+				" %p playlist position /"
+				" <i> </i> italic text /"
+				" <b> </b> bold text /"
+				" <br> line break")
+		group.add_option("-F", "--title-format", 
+				default=default_options['title_format'], metavar="FORMAT",
+				help="Format for the notification header")
+		group.add_option("-f", "--body-format", 
+				default=default_options['body_format'], metavar="FORMAT",
+				help="Format for the notification body")
+		parser.add_option_group(group)
 
-	# parse the commandline
-	(options, _) = parser.parse_args()
+		# parse the commandline
+		(options, _) = parser.parse_args()
 
-	# dump default options if requested
-	if options.show_defaults:
-		print yaml.dump(DEFAULT_OPTIONS, default_flow_style=False)
-		sys.exit()
+		# dump default options if requested
+		if options.show_defaults:
+			print yaml.dump(DEFAULT_OPTIONS, default_flow_style=False)
+			sys.exit()
 
-	# initializate the notifier
-	if not pynotify.init('mpn'):
-		print "Failed to initialize pynotify module"
-		sys.exit(1)
+		# initializate the notifier
+		if not pynotify.init('mpn'):
+			print "Failed to initialize pynotify module"
+			sys.exit(1)
 
-	MPN = Notifier(options=options)
+		MPN = Notifier(options=options)
 
-	# fork if necessary
-	if options.daemon and not options.debug:
-		if os.fork() != 0:
+		# fork if necessary
+		if options.daemon and not options.debug:
+			if os.fork() != 0:
+				sys.exit(0)
+
+		# run the notifier
+		try:
+			MPN.run()
+			# We only need the main loop when iterating or if keys are enabled
+			if options.keys or not options.once:
+				gtk.main()
+		except KeyboardInterrupt:
+			MPN.close()
 			sys.exit(0)
 
-	# run the notifier
-	try:
-		MPN.run()
-		# We only need the main loop when iterating or if keys are enabled
-		if options.keys or not options.once:
-			gtk.main()
-	except KeyboardInterrupt:
-		MPN.close()
-		sys.exit(0)
+if __name__ == "__main__":
+	app = Application()
+	app.run()
