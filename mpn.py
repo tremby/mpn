@@ -343,6 +343,16 @@ class Notifier:
 		# Contents are updated before displaying
 		self.notifier = pynotify.Notification("MPN")
 
+		if self.options.status_icon and not self.options.once:
+			self.status_icon = gtk.StatusIcon()
+			self.status_icon.connect("activate", self.on_activate)
+			self.status_icon.connect("popup_menu", self.on_popup_menu)
+			self.status_icon.set_from_stock(gtk.STOCK_CDROM) # TODO: change this
+			self.status_icon.set_tooltip("MPN")
+			self.status_icon.set_visible(True)
+
+			self.notifier.attach_to_status_icon(self.status_icon)
+
 		# param timeout is in seconds
 		if self.options.timeout == 0:
 			self.notifier.set_timeout(pynotify.EXPIRES_NEVER)
@@ -360,14 +370,6 @@ class Notifier:
 			print "Title format: " + self.title_txt
 			print "Body format: " + self.body_txt
 		self.mpd = mpd.MPDClient()
-
-		if self.options.status_icon and not self.options.once:
-			self.status_icon = gtk.StatusIcon()
-			self.status_icon.connect("activate", self.on_activate)
-			self.status_icon.connect("popup_menu", self.on_popup_menu)
-			self.status_icon.set_from_stock(gtk.STOCK_CDROM) # TODO: change this
-			self.status_icon.set_tooltip("MPN")
-			self.status_icon.set_visible(True)
 
 		if not self.options.once:
 			def handle_signal_usr1(*args, **kwargs):
