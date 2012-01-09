@@ -380,7 +380,6 @@ class Notifier:
 			time.sleep(5)
 
 	def on_activate(self, icon, data=None):
-		self.critical_notification_closed = False
 		if self.status["state"] in ['play', 'pause']:
 			self.notifier.show()
 
