@@ -3,7 +3,7 @@
 from distutils.core import setup
 import mpn
 
-with open('README') as file:
+with open('README.md') as file:
     long_description = file.read()
 
 setup(name             = mpn.NAME,
