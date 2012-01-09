@@ -488,8 +488,10 @@ if __name__ == "__main__":
 
 	# initializate the argument parser
 	parser = OptionParser(version="%prog " + VERSION, description=DESCRIPTION, 
-			epilog="Send the USR1 signal to a running MPN process to display a "
-					"notification, for instance from a keyboard shortcut")
+			epilog="Defaults shown are after the influence of any "
+					"configuration file. Send the USR1 signal to a running MPN "
+					"process to display a notification, for instance from a "
+					"keyboard shortcut")
 
 	parser.add_option("--debug", action="store_true", 
 			default=default_options['debug'],

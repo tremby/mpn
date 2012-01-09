@@ -47,8 +47,9 @@ this:
       by <b>%a</b>
 
 None of the configuration keys are required, and any given settings override the 
-defaults, which are given in the help text (`mpn.py --help`) and also as YAML in 
-the `mpnrc` file distributed with MPN.
+defaults, which are given in the help text (`mpn.py --help`, shown *after* the 
+influence of any configuration file) and also as YAML in the `mpnrc` file 
+distributed with MPN.
 
 The fields have the same names as the long forms of the command line arguments 
 (with underscores instead of hyphens). Again, see the help text for full 
