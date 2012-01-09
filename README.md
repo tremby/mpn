@@ -60,13 +60,13 @@ Download
 
 ### This fork
 
-- At Github: https://github.com/tremby/mpn
+- At Github: <https://github.com/tremby/mpn>
 
 ### Original MPN
 
-- On PyPI: http://pypi.python.org/pypi/MPNotifier
-- Directly: http://chadok.info/mpn/MPNotifier-1.1.tar.gz
-- Darcs repository: http://chadok.info/darcs/mpn
+- On PyPI: <http://pypi.python.org/pypi/MPNotifier>
+- Directly: <http://chadok.info/mpn/MPNotifier-1.1.tar.gz>
+- Darcs repository: <http://chadok.info/darcs/mpn>
 
 Licence
 -------
