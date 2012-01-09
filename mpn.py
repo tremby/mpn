@@ -31,7 +31,7 @@ URL = "https://github.com/tremby/mpn"
 LICENSE = "GNU GPLv2+"
 
 import os, sys, cgi, time
-from optparse import Option, OptionParser, OptionGroup, SUPPRESS_HELP
+import optparse
 import re
 import socket
 
@@ -492,7 +492,8 @@ class Application:
 				pass
 
 		# initializate the argument parser
-		parser = OptionParser(version="%prog " + VERSION, description=DESCRIPTION, 
+		parser = optparse.OptionParser(version="%prog " + VERSION, 
+				description=DESCRIPTION,
 				epilog="Defaults shown are after the influence of any "
 						"configuration file. Send the USR1 signal to a running MPN "
 						"process to display a notification, for instance from a "
@@ -537,7 +538,7 @@ class Application:
 				action="store_false", default=default_options['status_icon'],
 				help="Disable status icon")
 
-		group = OptionGroup(parser,
+		group = optparse.OptionGroup(parser,
 				"Format related options for the notification display",
 				"Supported wildcards:"
 				" %t title /"
