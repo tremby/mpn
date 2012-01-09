@@ -30,8 +30,8 @@ Configuration
 -------------
 
 Options can be given on the command line (see `mpn.py --help` for details) or in 
-a configuration file. Command line options override anything given in a 
-configuration file.
+a configuration file (or both). Command line options override anything given in 
+a configuration file, which obviously in turn overwrite the defaults.
 
 MPNotifier will load the file `~/.mpnrc` if it exists, which is a YAML file like 
 this:
@@ -41,20 +41,21 @@ this:
     keys: False
     icon_size: 64
     music_path: /home/me/music
-    title_format: >-
-      %t
-    body_format: >-
-      from <i>%b</i>
-      by <b>%a</b>
+    title_format: "%t"
+    body_format: |
+        from <i>%b</i>
+        by <b>%a</b>
+
+If that file doesn't exist, `mpnrc` in the current directory is also tried.
 
 None of the configuration keys are required, and any given settings override the 
-defaults, which are given in the help text (`mpn.py --help`, shown *after* the 
-influence of any configuration file) and also as YAML in the `mpnrc` file 
-distributed with MPN.
+defaults. The defaults can be shown by running `mpn.py --show-defaults`. That 
+YAML output can be used as the starting point for a configuration file.
 
-The fields have the same names as the long forms of the command line arguments 
-(with underscores instead of hyphens). Again, see the help text for full 
-details.
+The fields have the same names as the long forms of the command line arguments, 
+but with underscores instead of hyphens. Full details can be found in the help 
+text (`mpn.py --help`), in which the defaults are shown *after* the influence of 
+any configuration file.
 
 Download
 --------

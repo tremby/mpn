@@ -459,21 +459,24 @@ class Notifier:
 		about_dialog.run()
 		about_dialog.destroy()
 
+DEFAULT_OPTIONS = {
+	"daemon": False,
+	"once": False,
+	"debug": False,
+	"persist": True,
+	"timeout": 3,
+	"keys": True,
+	"default_icon": "gnome-mime-audio",
+	"icon_size": 128,
+	"music_path": "/var/lib/mpd/music",
+	"title_format": "%t",
+	"body_format": "<b>%b</b><br><i>%a</i>",
+	"status_icon": True,
+	}
+
 if __name__ == "__main__":
-	default_options = {
-		"daemon": False,
-		"once": False,
-		"debug": False,
-		"persist": True,
-		"timeout": 3,
-		"keys": True,
-		"default_icon": "gnome-mime-audio",
-		"icon_size": 128,
-		"music_path": "/var/lib/mpd/music",
-		"title_format": "%t",
-		"body_format": "<b>%b</b><br><i>%a</i>",
-		"status_icon": True,
-		}
+	default_options = {}
+	default_options.update(DEFAULT_OPTIONS)
 	try:
 		stream = file(os.path.expanduser('~/.mpnrc'), 'r')
 		default_options.update(yaml.load(stream))
@@ -493,6 +496,9 @@ if __name__ == "__main__":
 					"process to display a notification, for instance from a "
 					"keyboard shortcut")
 
+	parser.add_option("--show-defaults", action="store_true",
+			help="Dump YAML of the default options, suitable for use as a "
+					"~/.mpnrc file, and exit")
 	parser.add_option("--debug", action="store_true", 
 			default=default_options['debug'],
 			help="Turn on debugging information")
@@ -549,6 +555,11 @@ if __name__ == "__main__":
 
 	# parse the commandline
 	(options, _) = parser.parse_args()
+
+	# dump default options if requested
+	if options.show_defaults:
+		print yaml.dump(DEFAULT_OPTIONS, default_flow_style=False)
+		sys.exit()
 
 	# initializate the notifier
 	if not pynotify.init('mpn'):
