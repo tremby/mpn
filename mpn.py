@@ -65,22 +65,6 @@ def convert_time(raw):
 			hour = hour[1:]
 		return hour + ':' + minutes + ':' + sec
 
-def prev_cb(n, action):
-	if MPN.options.debug:
-		print "Previous song"
-	MPN.mpd.previous()
-	if MPN.options.once:
-		MPN.close()
-		gtk.main_quit()
-
-def next_cb(n, action):
-	if MPN.options.debug:
-		print "Next song"
-	MPN.mpd.next()
-	if MPN.options.once:
-		MPN.close()
-		gtk.main_quit()
-
 def fileexists_insensitive(path):
 	"""check if a file exists, case-insensitively for the last component (basename)"""
 	searchdir = os.path.dirname(path)
@@ -139,6 +123,50 @@ class Notifier:
 	re_f = re.compile('(%f)', re.S) #File
 	re_n = re.compile('(%n)', re.S) #track Number
 	re_p = re.compile('(%p)', re.S) #playlist Position
+
+	def play_cb(self, *args, **kwargs):
+		if self.options.debug:
+			print "Play"
+		self.mpd.noidle()
+		self.mpd.fetch_idle()
+		self.mpd.play()
+		if self.options.once:
+			self.close()
+			gtk.main_quit()
+		self.mpd.send_idle()
+
+	def pause_cb(self, *args, **kwargs):
+		if self.options.debug:
+			print "Pause"
+		self.mpd.noidle()
+		self.mpd.fetch_idle()
+		self.mpd.pause()
+		if self.options.once:
+			self.close()
+			gtk.main_quit()
+		self.mpd.send_idle()
+
+	def prev_cb(self, *args, **kwargs):
+		if self.options.debug:
+			print "Previous song"
+		self.mpd.noidle()
+		self.mpd.fetch_idle()
+		self.mpd.previous()
+		if self.options.once:
+			self.close()
+			gtk.main_quit()
+		self.mpd.send_idle()
+
+	def next_cb(self, *args, **kwargs):
+		if self.options.debug:
+			print "Next song"
+		self.mpd.noidle()
+		self.mpd.fetch_idle()
+		self.mpd.next()
+		if self.options.once:
+			self.close()
+			gtk.main_quit()
+		self.mpd.send_idle()
 
 	def get_host(self):
 		"""get host name from MPD_HOST env variable"""
@@ -320,10 +348,10 @@ class Notifier:
 
 		return True
 
-	def player_cb(self, mpd, condition):
-		mpd.fetch_idle()
+	def player_cb(self, *args, **kwargs):
+		self.mpd.fetch_idle()
 		self.notify()
-		mpd.send_idle('player')
+		self.mpd.send_idle('player')
 		return True
 
 	def run(self):
@@ -360,8 +388,8 @@ class Notifier:
 			self.notifier.set_timeout(1000 * self.options.timeout)
 
 		if self.options.keys:
-			self.notifier.add_action("back", "&lt;&lt;", prev_cb)
-			self.notifier.add_action("forward", "&gt;&gt;", next_cb)
+			self.notifier.add_action("back", "&lt;&lt;", self.prev_cb)
+			self.notifier.add_action("forward", "&gt;&gt;", self.next_cb)
 
 		self.title_txt = re.sub("<br>", "\n", self.options.title_format)
 		self.body_txt = re.sub("<br>", "\n", self.options.body_format)
@@ -394,12 +422,30 @@ class Notifier:
 	def on_popup_menu(self, icon, button, time):
 		menu = gtk.Menu()
 
-		about = gtk.ImageMenuItem(gtk.STOCK_ABOUT)
-		about.connect("activate", self.show_about_dialog)
-		menu.append(about)
-		quit = gtk.ImageMenuItem(gtk.STOCK_QUIT)
-		quit.connect("activate", gtk.main_quit)
-		menu.append(quit)
+		if self.status["state"] == "play":
+			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PAUSE)
+			w.connect("activate", self.pause_cb)
+		else:
+			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PLAY)
+			w.connect("activate", self.play_cb)
+		# FIXME: presence of play/pause doesn't switch when menu is already open 
+		# and state changes
+		menu.append(w)
+		w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PREVIOUS)
+		w.connect("activate", self.prev_cb)
+		menu.append(w)
+		w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_NEXT)
+		w.connect("activate", self.next_cb)
+		menu.append(w)
+
+		menu.append(gtk.SeparatorMenuItem())
+
+		w = gtk.ImageMenuItem(gtk.STOCK_ABOUT)
+		w.connect("activate", self.show_about_dialog)
+		menu.append(w)
+		w = gtk.ImageMenuItem(gtk.STOCK_QUIT)
+		w.connect("activate", gtk.main_quit)
+		menu.append(w)
 
 		menu.show_all()
 		menu.popup(None, None, gtk.status_icon_position_menu, button, time, 
