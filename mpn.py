@@ -446,7 +446,8 @@ if __name__ == "__main__":
 			pass
 
 	# initializate the argument parser
-	parser = OptionParser(epilog="Send the USR1 signal to a running MPN process to display a "
+	parser = OptionParser(version="%prog " + VERSION, description=DESCRIPTION, 
+			epilog="Send the USR1 signal to a running MPN process to display a "
 					"notification, for instance from a keyboard shortcut")
 
 	parser.add_option("--debug", action="store_true", 
