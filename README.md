@@ -4,11 +4,11 @@ MPNotifier
 Description
 -----------
 
-MPNotifier is a lightweight client for `MPD <http://www.musicpd.org>`_
-displaying a popup notification each time a new song is played by the
-server. This kind of notification is usual for most of graphical MPD
-clients but if you prefer to use a text-mode client like ncmpc, you need
-to use a third-party tool like MPNotifier.
+MPNotifier is a lightweight client for [MPD](http://www.musicpd.org) displaying 
+a popup notification each time a new song is played by the server. This kind of 
+notification is usual for most graphical MPD clients but if you prefer to use a 
+text-mode client like ncmpc or pms, you need to use separate tool like 
+MPNotifier.
 
 This version is a fork by Bart Nagel.
 
@@ -17,37 +17,42 @@ Prerequisite
 
 The following python packages are needed:
 
-*  python-notify,
-*  python-mpd,
-*  python-gtk2.
+- python-notify
+- python-mpd
+- python-gtk2
 
 The following python packages are recommended:
 
-*  python-imaging
+- python-imaging
 
 Configuration
 -------------
 
-MPNotifier will load the file `~/.mpnrc`, which a YAML file like this
-one::
+Options can be given on the command line (see `mpn.py --help` for details) or in 
+a configuration file. Command line options override anything given in a 
+configuration file.
 
-   daemon: False
-   once: False
-   debug: False
-   persist: True
-   timeout: 3
-   keys: True
-   icon: gnome-mime-audio
-   icon_size: 128
-   music_path: /var/lib/mpd/music
-   title: >-
-     %t
-   body: >-
-     <b>%b</b>
-     <i>%a</i>
+MPNotifier will load the file `~/.mpnrc` if it exists, which is a YAML file like 
+this:
 
-The fields have the same names than the long form of the command line
-arguments, see `mpn -h` for explanation.
+    persist: True
+    timeout: 10
+    keys: False
+    icon_size: 64
+    music_path: /home/me/music
+    title_format: >-
+      %t
+    body_format: >-
+      from <i>%b</i>
+      by <b>%a</b>
+
+None of the configuration keys are required, and any given settings override the 
+defaults, which are given in the help text (`mpn.py --help`) and also as YAML in 
+the `mpnrc` file distributed with MPN.
+
+The fields have the same names as the long forms of the command line arguments 
+(with underscores instead of hyphens). Again, see the help text for full 
+details.
 
 Download
 --------
