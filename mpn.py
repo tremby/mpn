@@ -125,8 +125,7 @@ class Notifier:
 		self.mpd.fetch_idle()
 		self.mpd.play()
 		if self.options.once:
-			self.close()
-			gtk.main_quit()
+			self.quit()
 		self.mpd.send_idle()
 
 	def pause_cb(self, *args, **kwargs):
@@ -136,8 +135,7 @@ class Notifier:
 		self.mpd.fetch_idle()
 		self.mpd.pause()
 		if self.options.once:
-			self.close()
-			gtk.main_quit()
+			self.quit()
 		self.mpd.send_idle()
 
 	def prev_cb(self, *args, **kwargs):
@@ -147,8 +145,7 @@ class Notifier:
 		self.mpd.fetch_idle()
 		self.mpd.previous()
 		if self.options.once:
-			self.close()
-			gtk.main_quit()
+			self.quit()
 		self.mpd.send_idle()
 
 	def next_cb(self, *args, **kwargs):
@@ -158,8 +155,7 @@ class Notifier:
 		self.mpd.fetch_idle()
 		self.mpd.next()
 		if self.options.once:
-			self.close()
-			gtk.main_quit()
+			self.quit()
 		self.mpd.send_idle()
 
 	def get_host(self):
@@ -262,7 +258,7 @@ class Notifier:
 			return True
 		else:
 			print "mpn: Lost connection to server, exiting...\n"
-			sys.exit(1)
+			self.quit(1)
 			return False
 
 	def notify(self):
@@ -355,8 +351,15 @@ class Notifier:
 			self.mpd.send_idle('player')
 			gobject.io_add_watch(self.mpd, gobject.IO_IN, self.player_cb)
 
-	def close(self):
-		return self.disconnect()
+	def quit(self, *args, **kwargs):
+		self.notifier.close()
+		self.disconnect()
+		gtk.main_quit()
+		try:
+			code = kwargs.code
+		except AttributeError:
+			code = 0
+		sys.exit(code)
 
 	def __init__(self, options):
 		"""Initialisation of mpd client and pynotify"""
@@ -398,6 +401,12 @@ class Notifier:
 				self.on_activate()
 			signal.signal(signal.SIGUSR1, handle_signal_usr1)
 
+		# listen for kill signals and exit cleanly
+		def handle_exit_signal(*args, **kwargs):
+			self.quit()
+		signal.signal(signal.SIGINT, handle_exit_signal)
+		signal.signal(signal.SIGTERM, handle_exit_signal)
+
 		while True:
 			# Connection loop in case network is down / resolution fails
 			self.host = self.get_host()
@@ -406,7 +415,7 @@ class Notifier:
 				break
 			print "Failed to connect to server " + self.host
 			if not self.options.persist:
-				sys.exit(1)
+				self.quit(1)
 			time.sleep(5)
 
 	def on_activate(self, *args, **kwargs):
@@ -438,7 +447,7 @@ class Notifier:
 		w.connect("activate", self.show_about_dialog)
 		menu.append(w)
 		w = gtk.ImageMenuItem(gtk.STOCK_QUIT)
-		w.connect("activate", gtk.main_quit)
+		w.connect("activate", self.quit)
 		menu.append(w)
 
 		menu.show_all()
@@ -577,7 +586,7 @@ class Application:
 		# fork if necessary
 		if options.daemon and not options.debug:
 			if os.fork() != 0:
-				sys.exit(0)
+				sys.exit()
 
 		# run the notifier
 		try:
@@ -586,8 +595,7 @@ class Application:
 			if options.keys or not options.once:
 				gtk.main()
 		except KeyboardInterrupt:
-			MPN.close()
-			sys.exit(0)
+			pass
 
 if __name__ == "__main__":
 	app = Application()
