@@ -314,7 +314,7 @@ class Notifier:
 		body = self.re_n.sub(self.get_tag('track'), body)
 		body = self.re_p.sub(self.get_tag('pos'), body)
 
-		icon_url = self.options.default_icon
+		pixbuf_notification = None
 		if self.options.music_path is not None:
 			artist = self.get_tag("albumartist")
 			if not artist:
@@ -325,14 +325,12 @@ class Notifier:
 				if coverpath:
 					try:
 						import Image
-						import tempfile
+						import numpy
 						im = Image.open(coverpath)
-						im2 = im.resize((self.options.icon_size, self.options.icon_size), Image.ANTIALIAS)
-						destination = os.path.join(tempfile.gettempdir(), "mpn.png")
-						im2.save(destination)
-						icon_url = destination
+						im_notification = im.resize((self.options.icon_size, self.options.icon_size), Image.ANTIALIAS)
+						pixbuf_notification = gtk.gdk.pixbuf_new_from_array(numpy.array(im_notification), gtk.gdk.COLORSPACE_RGB, 8)
 					except ImportError:
-						icon_url = coverpath
+						pass
 					break
 
 		# set paramaters and display the notice
@@ -342,10 +340,24 @@ class Notifier:
 
 		if self.options.status_icon and not self.options.once:
 			self.status_icon.set_tooltip(re.sub("<.*?>", "", "%s\n%s" % (title, body)))
-
 		self.notifier.connect("closed", self.closed_cb)
 
-		self.notifier.update(title, body, icon_url)
+		# update notification title and body
+		self.notifier.update(title, body)
+
+		# update notification icon
+		if pixbuf_notification is None:
+			self.notifier.set_icon_from_pixbuf(
+					gtk.gdk.pixbuf_new_from_file_at_size(
+							gtk.icon_theme_get_default().lookup_icon(
+									self.options.default_icon,
+									self.options.icon_size,
+									0).get_filename(),
+							self.options.icon_size,
+							self.options.icon_size))
+		else:
+			self.notifier.set_icon_from_pixbuf(pixbuf_notification)
+
 		if not self.notifier.show():
 			print "Impossible to display the notification"
 			return False
