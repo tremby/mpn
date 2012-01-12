@@ -277,51 +277,51 @@ class Notifier:
 			if self.current == new_current:
 				return True
 			self.current = new_current
-
-			title = self.title_txt
-			body = self.body_txt
-			# get values with the strings html safe
-			title = self.re_t.sub(self.get_title(), title)
-			title = self.re_f.sub(self.get_file(), title)
-			title = self.re_d.sub(self.get_time(), title)
-			title = self.re_a.sub(self.get_tag('artist'), title)
-			title = self.re_b.sub(self.get_tag('album'), title)
-			title = self.re_n.sub(self.get_tag('track'), title)
-			title = self.re_p.sub(self.get_tag('pos'), title)
-
-			body = self.re_t.sub(self.get_title(True), body)
-			body = self.re_f.sub(self.get_file(True), body)
-			body = self.re_d.sub(self.get_time(), body)
-			body = self.re_a.sub(self.get_tag('artist', True), body)
-			body = self.re_b.sub(self.get_tag('album', True), body)
-			body = self.re_n.sub(self.get_tag('track'), body)
-			body = self.re_p.sub(self.get_tag('pos'), body)
-
-			icon_url = self.options.default_icon
-			if self.options.music_path is not None:
-				artist = self.get_tag("albumartist")
-				if not artist:
-					artist = self.get_tag("artist")
-				dirname = os.path.dirname(os.path.join(self.options.music_path, self.current["file"]))
-				for coverfilename in possible_cover_filenames():
-					coverpath = fileexists_insensitive(os.path.join(dirname, coverfilename))
-					if coverpath:
-						try:
-							import Image
-							import tempfile
-							im = Image.open(coverpath)
-							im2 = im.resize((self.options.icon_size, self.options.icon_size), Image.ANTIALIAS)
-							destination = os.path.join(tempfile.gettempdir(), "mpn.png")
-							im2.save(destination)
-							icon_url = destination
-						except ImportError:
-							icon_url = coverpath
-						break
-
 		except mpd.ConnectionError, (ce):
 			return self.reconnect()
 		except socket.error, (se):
 			return self.reconnect()
+
+		title = self.title_txt
+		body = self.body_txt
+
+		# get values with the strings html safe
+		title = self.re_t.sub(self.get_title(), title)
+		title = self.re_f.sub(self.get_file(), title)
+		title = self.re_d.sub(self.get_time(), title)
+		title = self.re_a.sub(self.get_tag('artist'), title)
+		title = self.re_b.sub(self.get_tag('album'), title)
+		title = self.re_n.sub(self.get_tag('track'), title)
+		title = self.re_p.sub(self.get_tag('pos'), title)
+
+		body = self.re_t.sub(self.get_title(True), body)
+		body = self.re_f.sub(self.get_file(True), body)
+		body = self.re_d.sub(self.get_time(), body)
+		body = self.re_a.sub(self.get_tag('artist', True), body)
+		body = self.re_b.sub(self.get_tag('album', True), body)
+		body = self.re_n.sub(self.get_tag('track'), body)
+		body = self.re_p.sub(self.get_tag('pos'), body)
+
+		icon_url = self.options.default_icon
+		if self.options.music_path is not None:
+			artist = self.get_tag("albumartist")
+			if not artist:
+				artist = self.get_tag("artist")
+			dirname = os.path.dirname(os.path.join(self.options.music_path, self.current["file"]))
+			for coverfilename in possible_cover_filenames():
+				coverpath = fileexists_insensitive(os.path.join(dirname, coverfilename))
+				if coverpath:
+					try:
+						import Image
+						import tempfile
+						im = Image.open(coverpath)
+						im2 = im.resize((self.options.icon_size, self.options.icon_size), Image.ANTIALIAS)
+						destination = os.path.join(tempfile.gettempdir(), "mpn.png")
+						im2.save(destination)
+						icon_url = destination
+					except ImportError:
+						icon_url = coverpath
+					break
 
 		# set paramaters and display the notice
 		if self.options.debug:
