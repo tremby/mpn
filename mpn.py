@@ -431,7 +431,9 @@ class Notifier:
 
 					# resize for status icon and paste on state symbols
 					if self.options.status_icon and not self.options.once:
-						im_statusicon = im.resize((16, 16), Image.ANTIALIAS)
+						si_size = self.status_icon.get_size()
+						im_statusicon = im.resize((si_size, si_size), 
+								Image.ANTIALIAS)
 						si = gtk.gdk.pixbuf_new_from_array(
 										numpy.array(im_statusicon),
 										gtk.gdk.COLORSPACE_RGB, 8)
@@ -444,11 +446,11 @@ class Notifier:
 							p = gtk.gdk.pixbuf_new_from_file(
 									"%s/%s.svg" % (PIXMAP_DIR, name))
 							p.composite(self.pixbuf_statusicon[name],
-									si.get_width() - p.get_width(),
-									si.get_height() - p.get_height(),
+									si_size - p.get_width(),
+									si_size - p.get_height(),
 									p.get_width(), p.get_height(),
-									si.get_width() - p.get_width(),
-									si.get_height() - p.get_height(),
+									si_size - p.get_width(),
+									si_size - p.get_height(),
 									1, 1, gtk.gdk.INTERP_NEAREST, 255)
 					break
 
