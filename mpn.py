@@ -162,6 +162,12 @@ class Notifier:
 			self.quit()
 		self.mpd.send_idle()
 
+	def closed_cb(self, *args, **kwargs):
+		if self.options.debug:
+			print "Notification closed"
+		if self.options.once:
+			self.quit()
+
 	def get_host(self):
 		"""get host name from MPD_HOST env variable"""
 		host = os.environ.get('MPD_HOST', 'localhost')
@@ -336,6 +342,8 @@ class Notifier:
 
 		if self.options.status_icon and not self.options.once:
 			self.status_icon.set_tooltip(re.sub("<.*?>", "", "%s\n%s" % (title, body)))
+
+		self.notifier.connect("closed", self.closed_cb)
 
 		self.notifier.update(title, body, icon_url)
 		if not self.notifier.show():
