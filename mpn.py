@@ -121,8 +121,9 @@ class Notifier:
 	def play_cb(self, *args, **kwargs):
 		if self.options.debug:
 			print "Play"
-		self.mpd.noidle()
-		self.mpd.fetch_idle()
+		if not self.options.once:
+			self.mpd.noidle()
+			self.mpd.fetch_idle()
 		self.mpd.play()
 		if self.options.once:
 			self.quit()
@@ -131,8 +132,9 @@ class Notifier:
 	def pause_cb(self, *args, **kwargs):
 		if self.options.debug:
 			print "Pause"
-		self.mpd.noidle()
-		self.mpd.fetch_idle()
+		if not self.options.once:
+			self.mpd.noidle()
+			self.mpd.fetch_idle()
 		self.mpd.pause()
 		if self.options.once:
 			self.quit()
@@ -141,8 +143,9 @@ class Notifier:
 	def prev_cb(self, *args, **kwargs):
 		if self.options.debug:
 			print "Previous song"
-		self.mpd.noidle()
-		self.mpd.fetch_idle()
+		if not self.options.once:
+			self.mpd.noidle()
+			self.mpd.fetch_idle()
 		self.mpd.previous()
 		if self.options.once:
 			self.quit()
@@ -151,8 +154,9 @@ class Notifier:
 	def next_cb(self, *args, **kwargs):
 		if self.options.debug:
 			print "Next song"
-		self.mpd.noidle()
-		self.mpd.fetch_idle()
+		if not self.options.once:
+			self.mpd.noidle()
+			self.mpd.fetch_idle()
 		self.mpd.next()
 		if self.options.once:
 			self.quit()
