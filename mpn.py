@@ -441,16 +441,17 @@ class Notifier:
 							si = si.add_alpha(True, 0, 0, 0)
 
 						self.pixbuf_statusicon = {}
+						p_size = int(si_size * 
+								self.options.play_state_icon_size)
 						for name in ("stop", "play", "pause"):
 							self.pixbuf_statusicon[name] = si.copy()
-							p = gtk.gdk.pixbuf_new_from_file(
-									"%s/%s.svg" % (PIXMAP_DIR, name))
+							p = gtk.gdk.pixbuf_new_from_file_at_size(
+									"%s/%s.svg" % (PIXMAP_DIR, name),
+									p_size, p_size)
 							p.composite(self.pixbuf_statusicon[name],
-									si_size - p.get_width(),
-									si_size - p.get_height(),
-									p.get_width(), p.get_height(),
-									si_size - p.get_width(),
-									si_size - p.get_height(),
+									si_size - p_size, si_size - p_size,
+									p_size, p_size,
+									si_size - p_size, si_size - p_size,
 									1, 1, gtk.gdk.INTERP_NEAREST, 255)
 					break
 
@@ -624,6 +625,7 @@ DEFAULT_OPTIONS = {
 	"title_format": "%t",
 	"body_format": "<b>%b</b><br><i>%a</i>",
 	"status_icon": True,
+	"play_state_icon_size": 0.25,
 	}
 
 class Application:
@@ -685,6 +687,10 @@ class Application:
 		parser.add_option("--status-icon", action="store_true", 
 				default=default_options['status_icon'],
 				help="Enable status icon")
+		parser.add_option("--play-state-icon-size", type="float", 
+				default=default_options["play_state_icon_size"],
+				help="Size of the play state (pause, stop, play) icon as a "
+				"proportion of the status icon size (default: %default)")
 		parser.add_option("--no-status-icon", dest="status_icon", 
 				action="store_false", default=default_options['status_icon'],
 				help="Disable status icon")

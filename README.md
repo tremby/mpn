@@ -45,6 +45,7 @@ this:
     body_format: |
         from <i>%b</i>
         by <b>%a</b>
+    play_state_icon_size: 0.5
 
 If that file doesn't exist, `mpnrc` in the current directory is also tried.
 
