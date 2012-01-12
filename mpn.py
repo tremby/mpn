@@ -199,16 +199,19 @@ class Notifier:
 
 	def get_time(self, elapsed=False):
 		"""Get current time and total length of the current song"""
-		time = self.status["time"]
-		now, length = [int(c) for c in time.split(':')]
-		now_time = convert_time(now)
-		length_time = convert_time(length)
+		try:
+			time = self.status["time"]
+			now, length = [int(c) for c in time.split(':')]
+			now_time = convert_time(now)
+			length_time = convert_time(length)
 
-		if self.options.debug:
-			print "Position : " + now_time + " / " + length_time
-		if elapsed:
-			return now_time
-		return length_time
+			if self.options.debug:
+				print "Position : " + now_time + " / " + length_time
+			if elapsed:
+				return now_time
+			return length_time
+		except KeyError:
+			return "unknown"
 
 	def get_tag(self, tag, safe=False):
 		"""Get a generic tag from the current data"""
