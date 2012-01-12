@@ -25,8 +25,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 NAME = "MPNotifier"
 VERSION = "1.2~git"
 DESCRIPTION = "A lightweight notifier for MPD"
-AUTHOR = "Olivier Schwander, Bart Nagel"
-AUTHOR_EMAIL = "olivier.schwander@chadok.info, bart@tremby.net"
+AUTHOR = "Olivier Schwander, Wather Maldonado, Bart Nagel"
+AUTHOR_EMAIL = "olivier.schwander@chadok.info, walther.md@gmail.com, bart@tremby.net"
 URL = "https://github.com/tremby/mpn"
 LICENSE = "GNU GPLv2+"
 
