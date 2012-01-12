@@ -315,6 +315,8 @@ class Notifier:
 		body = self.re_p.sub(self.get_tag('pos'), body)
 
 		pixbuf_notification = None
+		pixbuf_statusicon = None
+
 		if self.options.music_path is not None:
 			artist = self.get_tag("albumartist")
 			if not artist:
@@ -327,8 +329,14 @@ class Notifier:
 						import Image
 						import numpy
 						im = Image.open(coverpath)
+
+						# resize for notification image
 						im_notification = im.resize((self.options.icon_size, self.options.icon_size), Image.ANTIALIAS)
 						pixbuf_notification = gtk.gdk.pixbuf_new_from_array(numpy.array(im_notification), gtk.gdk.COLORSPACE_RGB, 8)
+
+						# resize for status icon
+						im_statusicon = im.resize((16, 16), Image.ANTIALIAS)
+						pixbuf_statusicon = gtk.gdk.pixbuf_new_from_array(numpy.array(im_statusicon), gtk.gdk.COLORSPACE_RGB, 8)
 					except ImportError:
 						pass
 					break
@@ -340,6 +348,12 @@ class Notifier:
 
 		if self.options.status_icon and not self.options.once:
 			self.status_icon.set_tooltip(re.sub("<.*?>", "", "%s\n%s" % (title, body)))
+
+		if pixbuf_statusicon is None:
+			self.status_icon.set_from_stock(gtk.STOCK_CDROM) # TODO: change this
+		else:
+			self.status_icon.set_from_pixbuf(pixbuf_statusicon)
+
 		self.notifier.connect("closed", self.closed_cb)
 
 		# update notification title and body
