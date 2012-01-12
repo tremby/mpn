@@ -25,10 +25,17 @@ setup(
 				"Programming Language :: Python",
 				"Topic :: Multimedia :: Sound/Audio",
 				],
-		requires = [
+		requires=[
 				"pyyaml",
 				"pygtk",
 				"mpd",
-				"pynotify"
+				"pynotify",
+				"Image",
+				"numpy",
 				],
+		data_files=[("share/pixmaps/mpn", [
+				"pixmaps/pause.svg",
+				"pixmaps/play.svg",
+				"pixmaps/stop.svg",
+				])],
 		)

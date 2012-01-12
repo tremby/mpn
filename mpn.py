@@ -50,7 +50,22 @@ import pynotify
 import yaml
 import signal
 
+import Image
+import numpy
+
 MPN = None
+
+def pixmap_dir():
+	"""get pixmap location"""
+	for d in (os.path.join(os.path.dirname(__file__), "pixmaps"),
+			"/usr/local/share/pixmaps/mpn",
+			"/usr/share/pixmaps/mpn"):
+		if os.access(d, os.R_OK):
+			return d
+	return False
+PIXMAP_DIR = pixmap_dir()
+assert PIXMAP_DIR
+
 def convert_time(raw):
 	"""Format a number of seconds to the hh:mm:ss format"""
 	# Converts raw time to 'hh:mm:ss' with leading zeros as appropriate
@@ -118,6 +133,9 @@ class Notifier:
 	iterate_handler = None
 	title_txt = None
 	body_txt = None
+	current_image_url = None
+	pixbuf_notification = None
+	pixbuf_statusicon = None
 	re_t = re.compile('(%t)', re.S) #Title
 	re_a = re.compile('(%a)', re.S) #Artist
 	re_b = re.compile('(%b)', re.S) #alBum
@@ -282,94 +300,170 @@ class Notifier:
 			self.quit(1)
 			return False
 
-	def notify(self):
-		"""Display the notification"""
+	def checkstate(self):
+		"""Check what has changed, take action"""
+		if self.options.debug:
+			print "checking state"
+
+		# get state
 		try:
-			self.status = self.mpd.status()
-
-			# only if there is a song currently playing
-			if not self.status["state"] in ['play', 'pause']:
-				if self.options.debug:
-					print "No files playing on the server." + self.host
-				if self.options.once:
-					sys.exit()
-				return True
-
-			# only if the song has changed
-			new_current = self.mpd.currentsong()
-			if self.current == new_current:
-				return True
-			self.current = new_current
+			status = self.mpd.status()
+			current = self.mpd.currentsong()
 		except mpd.ConnectionError, (ce):
 			return self.reconnect()
 		except socket.error, (se):
 			return self.reconnect()
 
-		title = self.title_txt
-		body = self.body_txt
+		# if in "once" mode and no song is playing, exit
+		if self.options.once and status["state"] == "stop":
+			if self.options.debug:
+				print "Status is stopped, exiting"
+			sys.exit()
 
-		# get values with the strings html safe
-		title = self.re_t.sub(self.get_title(), title)
-		title = self.re_f.sub(self.get_file(), title)
-		title = self.re_d.sub(self.get_time(), title)
-		title = self.re_a.sub(self.get_tag('artist'), title)
-		title = self.re_b.sub(self.get_tag('album'), title)
-		title = self.re_n.sub(self.get_tag('track'), title)
-		title = self.re_p.sub(self.get_tag('pos'), title)
+		# has status changed
+		status_changed = self.status is None or \
+				status["state"] != self.status["state"]
+		oldstatus = self.status
+		self.status = status
+		if self.options.debug and status_changed:
+			print "status has changed: ", status
 
-		body = self.re_t.sub(self.get_title(True), body)
-		body = self.re_f.sub(self.get_file(True), body)
-		body = self.re_d.sub(self.get_time(), body)
-		body = self.re_a.sub(self.get_tag('artist', True), body)
-		body = self.re_b.sub(self.get_tag('album', True), body)
-		body = self.re_n.sub(self.get_tag('track'), body)
-		body = self.re_p.sub(self.get_tag('pos'), body)
+		# has song changed
+		song_changed = self.current is None or current != self.current
+		self.current = current
+		if self.options.debug and song_changed:
+			print "song has changed: ", current
 
-		pixbuf_notification = None
-		pixbuf_statusicon = None
+		# if stopped close the notification
+		if status["state"] == "stop":
+			self.close_notification()
 
-		if self.options.music_path is not None:
-			artist = self.get_tag("albumartist")
-			if not artist:
-				artist = self.get_tag("artist")
-			dirname = os.path.dirname(os.path.join(self.options.music_path, self.current["file"]))
-			for coverfilename in possible_cover_filenames():
-				coverpath = fileexists_insensitive(os.path.join(dirname, coverfilename))
-				if coverpath:
-					try:
-						import Image
-						import numpy
-						im = Image.open(coverpath)
+		# if anything important is different update icons, tooltip etc
+		if status_changed or song_changed:
+			self.update()
 
-						# resize for notification image
-						im_notification = im.resize((self.options.icon_size, self.options.icon_size), Image.ANTIALIAS)
-						pixbuf_notification = gtk.gdk.pixbuf_new_from_array(numpy.array(im_notification), gtk.gdk.COLORSPACE_RGB, 8)
+		# if not stopped and the song changed, or was stopped and now not, 
+		# display the notification
+		if (oldstatus is None or oldstatus["state"] == "stop") \
+				and status["state"] != "stop" \
+				or song_changed and status["state"] != "stop":
+			self.show_notification()
 
-						# resize for status icon
-						im_statusicon = im.resize((16, 16), Image.ANTIALIAS)
-						pixbuf_statusicon = gtk.gdk.pixbuf_new_from_array(numpy.array(im_statusicon), gtk.gdk.COLORSPACE_RGB, 8)
-					except ImportError:
-						pass
-					break
+	def close_notification(self):
+		try:
+			self.notifier.close()
+		except glib.GError:
+			pass
 
-		# set paramaters and display the notice
+	def show_notification(self):
+		if not self.notifier.show():
+			print "Impossible to display the notification"
+			return False
+		return True
+
+	def update(self):
+		if "file" not in self.current:
+			title = "no song"
+			body = "no song is currently playing"
+		else:
+			title = self.title_txt
+			body = self.body_txt
+
+			# get values with the strings html safe
+			title = self.re_t.sub(self.get_title(), title)
+			title = self.re_f.sub(self.get_file(), title)
+			title = self.re_d.sub(self.get_time(), title)
+			title = self.re_a.sub(self.get_tag('artist'), title)
+			title = self.re_b.sub(self.get_tag('album'), title)
+			title = self.re_n.sub(self.get_tag('track'), title)
+			title = self.re_p.sub(self.get_tag('pos'), title)
+
+			body = self.re_t.sub(self.get_title(True), body)
+			body = self.re_f.sub(self.get_file(True), body)
+			body = self.re_d.sub(self.get_time(), body)
+			body = self.re_a.sub(self.get_tag('artist', True), body)
+			body = self.re_b.sub(self.get_tag('album', True), body)
+			body = self.re_n.sub(self.get_tag('track'), body)
+			body = self.re_p.sub(self.get_tag('pos'), body)
+
+		# show title and body for debug
 		if self.options.debug:
 			print "Title string: " + title
 			print "Body string: " + body
 
+		# update tooltip
 		if self.options.status_icon and not self.options.once:
-			self.status_icon.set_tooltip(re.sub("<.*?>", "", "%s\n%s" % (title, body)))
+			self.status_icon.set_tooltip(re.sub("<.*?>", "", "%s\n%s\n(%s)"
+					% (title, body, self.status["state"])))
 
-		if pixbuf_statusicon is None:
-			self.status_icon.set_from_stock(gtk.STOCK_CDROM) # TODO: change this
-		else:
-			self.status_icon.set_from_pixbuf(pixbuf_statusicon)
-
-		# update notification title and body
+		# update notification text
 		self.notifier.update(title, body)
 
+		# get and process album art
+		if "file" not in self.current:
+			self.current_image_url = None
+		elif self.options.music_path is not None:
+			artist = self.get_tag("albumartist")
+			if not artist:
+				artist = self.get_tag("artist")
+			dirname = os.path.dirname(
+					os.path.join(self.options.music_path, self.current["file"]))
+			for coverfilename in possible_cover_filenames():
+				coverpath = fileexists_insensitive(
+						os.path.join(dirname, coverfilename))
+				if not coverpath:
+					self.current_image_url = None
+				else:
+					if coverpath == self.current_image_url:
+						# don't regenerate images if it's the same source image
+						break
+					self.current_image_url = coverpath
+					im = Image.open(coverpath)
+
+					# resize for notification image
+					im_notification = im.resize(
+							(self.options.icon_size, self.options.icon_size),
+							Image.ANTIALIAS)
+					self.pixbuf_notification = \
+							gtk.gdk.pixbuf_new_from_array(
+									numpy.array(im_notification),
+									gtk.gdk.COLORSPACE_RGB, 8)
+
+					# resize for status icon and paste on state symbols
+					if self.options.status_icon and not self.options.once:
+						im_statusicon = im.resize((16, 16), Image.ANTIALIAS)
+						si = gtk.gdk.pixbuf_new_from_array(
+										numpy.array(im_statusicon),
+										gtk.gdk.COLORSPACE_RGB, 8)
+						if not si.get_has_alpha():
+							si = si.add_alpha(True, 0, 0, 0)
+
+						self.pixbuf_statusicon = {}
+						for name in ("stop", "play", "pause"):
+							self.pixbuf_statusicon[name] = si.copy()
+							p = gtk.gdk.pixbuf_new_from_file(
+									"%s/%s.svg" % (PIXMAP_DIR, name))
+							p.composite(self.pixbuf_statusicon[name],
+									si.get_width() - p.get_width(),
+									si.get_height() - p.get_height(),
+									p.get_width(), p.get_height(),
+									si.get_width() - p.get_width(),
+									si.get_height() - p.get_height(),
+									1, 1, gtk.gdk.INTERP_NEAREST, 255)
+					break
+
+		# update status icon
+		if self.options.status_icon and not self.options.once:
+			if self.current_image_url is None:
+				self.status_icon.set_from_stock(gtk.STOCK_CDROM) # TODO: change this
+			else:
+				if self.options.debug:
+					print "setting icon, state %s" % self.status["state"]
+				self.status_icon.set_from_pixbuf(
+						self.pixbuf_statusicon[self.status["state"]])
+
 		# update notification icon
-		if pixbuf_notification is None:
+		if self.current_image_url is None:
 			self.notifier.set_icon_from_pixbuf(
 					gtk.gdk.pixbuf_new_from_file_at_size(
 							gtk.icon_theme_get_default().lookup_icon(
@@ -379,32 +473,23 @@ class Notifier:
 							self.options.icon_size,
 							self.options.icon_size))
 		else:
-			self.notifier.set_icon_from_pixbuf(pixbuf_notification)
-
-		if not self.notifier.show():
-			print "Impossible to display the notification"
-			return False
-
-		return True
+			self.notifier.set_icon_from_pixbuf(self.pixbuf_notification)
 
 	def player_cb(self, *args, **kwargs):
 		self.mpd.fetch_idle()
-		self.notify()
+		self.checkstate()
 		self.mpd.send_idle('player')
 		return True
 
 	def run(self):
 		"""Launch the iteration"""
-		self.notify()
+		self.checkstate()
 		if not self.options.once:
 			self.mpd.send_idle('player')
 			gobject.io_add_watch(self.mpd, gobject.IO_IN, self.player_cb)
 
 	def quit(self, *args, **kwargs):
-		try:
-			self.notifier.close()
-		except glib.GError:
-			pass
+		self.close_notification()
 		self.disconnect()
 		gtk.main_quit()
 		try:
