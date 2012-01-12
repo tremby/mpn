@@ -274,6 +274,8 @@ class Notifier:
 			if not self.status["state"] in ['play', 'pause']:
 				if self.options.debug:
 					print "No files playing on the server." + self.host
+				if self.options.once:
+					sys.exit()
 				return True
 
 			# only if the song has changed
