@@ -365,8 +365,6 @@ class Notifier:
 		else:
 			self.status_icon.set_from_pixbuf(pixbuf_statusicon)
 
-		self.notifier.connect("closed", self.closed_cb)
-
 		# update notification title and body
 		self.notifier.update(title, body)
 
@@ -421,6 +419,9 @@ class Notifier:
 
 		# Contents are updated before displaying
 		self.notifier = pynotify.Notification("MPN")
+
+		# set closed handler
+		self.notifier.connect("closed", self.closed_cb)
 
 		if self.options.status_icon and not self.options.once:
 			self.status_icon = gtk.StatusIcon()
