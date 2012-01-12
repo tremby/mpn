@@ -36,7 +36,7 @@ import re
 import socket
 
 import gobject
-import gtk
+import gtk, glib
 import mpd
 import pynotify
 import yaml
@@ -352,7 +352,10 @@ class Notifier:
 			gobject.io_add_watch(self.mpd, gobject.IO_IN, self.player_cb)
 
 	def quit(self, *args, **kwargs):
-		self.notifier.close()
+		try:
+			self.notifier.close()
+		except glib.GError:
+			pass
 		self.disconnect()
 		gtk.main_quit()
 		try:
