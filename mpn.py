@@ -187,6 +187,7 @@ class Notifier:
 	current_image_url = None
 	pixbuf_notification = None
 	pixbuf_statusicon = None
+	status_icon_size = None
 	re_t = re.compile('(%t)', re.S) #Title
 	re_a = re.compile('(%a)', re.S) #Artist
 	re_b = re.compile('(%b)', re.S) #alBum
@@ -467,7 +468,12 @@ class Notifier:
 				else:
 					if coverpath == self.current_image_url:
 						# don't regenerate images if it's the same source image
-						break
+						if not self.options.status_icon or self.options.once:
+							break
+						elif self.status_icon is not None and \
+								self.status_icon_size \
+								== self.status_icon.get_size():
+							break
 					self.current_image_url = coverpath
 					im = Image.open(coverpath)
 
@@ -483,6 +489,7 @@ class Notifier:
 					# resize for status icon and paste on state symbols
 					if self.options.status_icon and not self.options.once:
 						si_size = self.status_icon.get_size()
+						self.status_icon_size = si_size
 						im_statusicon = im.resize((si_size, si_size), 
 								Image.ANTIALIAS)
 						si = gtk.gdk.pixbuf_new_from_array(
