@@ -107,12 +107,12 @@ def make_svg(icon, size):
 	for path in paths[icon]:
 		# outline
 		body = """%s<path d="m %s z"
-				style="fill:none;stroke:white;stroke-width:2;"/>\n""" \
+				style="fill:none;stroke:black;stroke-width:2;opacity:0.8"/>""" \
 				% (body, " ".join("%s,%s" % p for p in path))
 
 		# fill
 		body = """%s<path d="m %s z"
-				style="fill:black;stroke:none;"/>\n""" \
+				style="fill:white;stroke:none;opacity:0.8"/>""" \
 				% (body, " ".join("%s,%s" % p for p in path))
 	return "%s%s%s" % (header, body, footer)
 
