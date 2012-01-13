@@ -520,6 +520,8 @@ class Notifier:
 			self.status_icon = gtk.StatusIcon()
 			self.status_icon.connect("activate", self.on_activate)
 			self.status_icon.connect("popup_menu", self.on_popup_menu)
+			self.status_icon.connect("size_changed",
+					self.on_status_icon_size_changed)
 			self.status_icon.set_from_stock(gtk.STOCK_CDROM) # TODO: change this
 			self.status_icon.set_tooltip("MPN")
 			self.status_icon.set_visible(True)
@@ -601,6 +603,9 @@ class Notifier:
 		menu.show_all()
 		menu.popup(None, None, gtk.status_icon_position_menu, button, time, 
 				self.status_icon)
+
+	def on_status_icon_size_changed(self, *args, **kwargs):
+		self.update()
 
 	def show_about_dialog(self, widget):
 		about_dialog = gtk.AboutDialog()
