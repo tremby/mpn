@@ -33,9 +33,4 @@ setup(
 				"Image",
 				"numpy",
 				],
-		data_files=[("share/pixmaps/mpn", [
-				"pixmaps/pause.svg",
-				"pixmaps/play.svg",
-				"pixmaps/stop.svg",
-				])],
 		)

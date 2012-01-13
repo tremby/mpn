@@ -68,6 +68,54 @@ def pixmap_dir():
 PIXMAP_DIR = pixmap_dir()
 assert PIXMAP_DIR
 
+def make_svg(icon, size):
+	header = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+			<svg xmlns:svg="http://www.w3.org/2000/svg" 
+			xmlns="http://www.w3.org/2000/svg" version="1.1" 
+			width="%s" 
+			height="%s">\n""" % (size, size)
+	footer = "</svg>\n"
+
+	# usable size (size minus 1-pixel outline on each side)
+	u = size - 2
+
+	# size of pause bars
+	if u % 3 == 0:
+		pw = u / 3
+	elif u % 3 == 1:
+		if u == 4:
+			pw = 1 # edge case to keep gap visible
+		else:
+			pw = u / 3 + 1
+	else:
+		pw = u / 3 + 1
+
+	paths = {
+			"play": [
+					[(1, 1), (0, u), (u, -u/2.0)],
+					],
+			"stop": [
+					[(1, 1), (0, u), (u, 0), (0, -u)],
+					],
+			"pause": [
+					[(1, 1), (0, u), (pw, 0), (0, -u)],
+					[(u+1, 1), (0, u), (-pw, 0), (0, -u)],
+					],
+			}
+
+	body = ""
+	for path in paths[icon]:
+		# outline
+		body = """%s<path d="m %s z"
+				style="fill:none;stroke:white;stroke-width:2;"/>\n""" \
+				% (body, " ".join("%s,%s" % p for p in path))
+
+		# fill
+		body = """%s<path d="m %s z"
+				style="fill:black;stroke:none;"/>\n""" \
+				% (body, " ".join("%s,%s" % p for p in path))
+	return "%s%s%s" % (header, body, footer)
+
 def convert_time(raw):
 	"""Format a number of seconds to the hh:mm:ss format"""
 	# Converts raw time to 'hh:mm:ss' with leading zeros as appropriate
@@ -450,9 +498,12 @@ class Notifier:
 							self.pixbuf_statusicon[name] = si.copy()
 							if p_size == 0:
 								continue
-							p = gtk.gdk.pixbuf_new_from_file_at_size(
-									"%s/%s.svg" % (PIXMAP_DIR, name),
-									p_size, p_size)
+
+							pl = gtk.gdk.PixbufLoader("svg")
+							pl.write(make_svg(name, p_size))
+							pl.close()
+							p = pl.get_pixbuf()
+
 							p.composite(self.pixbuf_statusicon[name],
 									si_size - p_size, si_size - p_size,
 									p_size, p_size,
@@ -635,7 +686,7 @@ DEFAULT_OPTIONS = {
 	"title_format": "%t",
 	"body_format": "<b>%b</b><br><i>%a</i>",
 	"status_icon": True,
-	"play_state_icon_size": 0.25,
+	"play_state_icon_size": 0.4,
 	}
 
 class Application:
