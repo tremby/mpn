@@ -57,6 +57,8 @@ MPN = None
 
 def pixmap_dir():
 	"""get pixmap location"""
+	# FIXME: the absolute paths here only work on Unix and if it was installed 
+	# to the default place
 	for d in (os.path.join(os.path.dirname(__file__), "pixmaps"),
 			"/usr/local/share/pixmaps/mpn",
 			"/usr/share/pixmaps/mpn"):
