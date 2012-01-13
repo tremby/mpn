@@ -716,73 +716,90 @@ class Application:
 		parser = optparse.OptionParser(version="%prog " + VERSION, 
 				description=DESCRIPTION,
 				epilog="Defaults shown are after the influence of any "
-						"configuration file. Send the USR1 signal to a running "
+						"configuration file. Negative options exist for each "
+						"of the booleans starting with \"--no-\", for instance "
+						"--no-status-icon. Send the USR1 signal to a running "
 						"MPN process to display a notification, for instance "
-						"from a keyboard shortcut")
+						"from a keyboard shortcut.")
+
+		def d(option):
+			return "(default: %sset)" % \
+					("" if default_options[option] else "un")
 
 		parser.add_option("--show-defaults", action="store_true",
-				help="Dump YAML of the default options, suitable for use as a "
-						"~/.mpnrc file, and exit")
+				help="Dump YAML of the default options, suitable for use as "
+						"a ~/.mpnrc file, and exit")
 		parser.add_option("--debug", action="store_true", 
 				default=default_options['debug'],
-				help="Turn on debugging information")
+				help="Turn on debugging information %s" % d("debug"))
+		parser.add_option("--no-debug", dest="debug", action="store_false", 
+				help=optparse.SUPPRESS_HELP)
 		parser.add_option("-d", "--daemon", action="store_true", 
 				default=default_options['daemon'],
-				help="Fork into the background")
+				help="Fork into the background %s" % d("daemon"))
+		parser.add_option("--no-daemon", dest="daemon", action="store_false", 
+				help=optparse.SUPPRESS_HELP)
 		parser.add_option("-p", "--persist", action="store_true", 
 				default=default_options['persist'],
-				help="Do not exit when connection fails")
+				help="Do not exit when connection fails %s" % d("persist"))
+		parser.add_option("--no-persist", dest="persist", action="store_false", 
+				help=optparse.SUPPRESS_HELP)
 		parser.add_option("-t", "--timeout", type="int", metavar="SECS", 
 				default=default_options['timeout'],
-				help="Notification timeout in secs (use 0 to disable)")
+				help="Notification timeout in secs (default %default, use 0 to "
+						"disable)")
 		parser.add_option("-k", "--keys", action="store_true", 
 				default=default_options['keys'],
-				help="Add Prev/Next buttons to notify window")
+				help="Add Prev/Next buttons to notify window %s" % d("keys"))
+		parser.add_option("--no-keys", dest="keys", action="store_false", 
+				help=optparse.SUPPRESS_HELP)
 		parser.add_option("-o", "--once", action="store_true", 
 				default=default_options['once'],
-				help="Notify once and exit")
+				help="Notify once and exit %s" % d("once"))
+		parser.add_option("--no-once", dest="once", action="store_false", 
+				help=optparse.SUPPRESS_HELP)
 		parser.add_option("-i", "--default-icon", metavar="ICON", 
 				default=default_options['default_icon'],
-				help="Default icon URI/name (default: %default)")
+				help="Default icon URI/name for notification window (default: "
+						"%default)")
 		parser.add_option("-s", "--icon-size", type="int", metavar="PIXELS", 
 				default=default_options['icon_size'],
 				help="Size in pixels to which the cover art should be resized "
-						"(default: %default)")
+						"in notifications (default: %default)")
 		parser.add_option("-m", "--music-path", metavar="PATH", 
 				default=default_options["music_path"],
 				help="Path to music files, where album art will be looked for "
-						"(default: %default)")
+						"(default: %default, use empty string to disable)")
 		parser.add_option("--status-icon", action="store_true", 
 				default=default_options['status_icon'],
-				help="Enable status icon")
+				help="Enable status icon %s" % d("status_icon"))
+		parser.add_option("--no-status-icon", dest="status_icon", 
+				action="store_false", help=optparse.SUPPRESS_HELP)
 		parser.add_option("--play-state-icon-size", type="float", 
 				default=default_options["play_state_icon_size"],
 				help="Size of the play state (pause, stop, play) icon as a "
-				"proportion of the status icon size (default: %default, use 0 "
-				"for no play state icon")
-		parser.add_option("--no-status-icon", dest="status_icon", 
-				action="store_false", default=default_options['status_icon'],
-				help="Disable status icon")
+						"proportion of the status icon size (default: "
+						"%default, use 0 for no play state icon")
 
 		group = optparse.OptionGroup(parser,
 				"Format related options for the notification display",
-				"Supported wildcards:"
-				" %t title /"
-				" %a artist /"
-				" %b album /"
-				" %d song duration /"
-				" %f base filename /"
-				" %n track number /"
-				" %p playlist position /"
-				" <i> </i> italic text /"
-				" <b> </b> bold text /"
-				" <br> line break")
+				"Supported wildcards: "
+						"%t title / "
+						"%a artist / "
+						"%b album / "
+						"%d song duration / "
+						"%f base filename / "
+						"%n track number / "
+						"%p playlist position / "
+						"<i> </i> italic text / "
+						"<b> </b> bold text / "
+						"<br> line break")
 		group.add_option("-F", "--title-format", 
 				default=default_options['title_format'], metavar="FORMAT",
-				help="Format for the notification header")
+				help="Format for the notification header (defalut %default)")
 		group.add_option("-f", "--body-format", 
 				default=default_options['body_format'], metavar="FORMAT",
-				help="Format for the notification body")
+				help="Format for the notification body (defalut %default)")
 		parser.add_option_group(group)
 
 		# parse the commandline
