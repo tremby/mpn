@@ -308,6 +308,9 @@ class Notifier:
 	pixbuf_statusicon = None
 	status_icon_size = None
 	re = {}
+	menu = None
+	menu_play = None
+	menu_pause = None
 
 	# callbacks
 	# --------------------------------------------------------------------------
@@ -350,35 +353,8 @@ class Notifier:
 
 	def on_popup_menu(self, icon, button, time):
 		"""Status icon was right-clicked"""
-		menu = gtk.Menu()
-
-		if self.status["state"] == "play":
-			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PAUSE)
-			w.connect("activate", self.pause_cb)
-		else:
-			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PLAY)
-			w.connect("activate", self.play_cb)
-		# FIXME: presence of play/pause doesn't switch when menu is already open 
-		# and state changes
-		menu.append(w)
-		w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PREVIOUS)
-		w.connect("activate", self.prev_cb)
-		menu.append(w)
-		w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_NEXT)
-		w.connect("activate", self.next_cb)
-		menu.append(w)
-
-		menu.append(gtk.SeparatorMenuItem())
-
-		w = gtk.ImageMenuItem(gtk.STOCK_ABOUT)
-		w.connect("activate", self.show_about_dialog)
-		menu.append(w)
-		w = gtk.ImageMenuItem(gtk.STOCK_QUIT)
-		w.connect("activate", self.quit)
-		menu.append(w)
-
-		menu.show_all()
-		menu.popup(None, None, gtk.status_icon_position_menu, button, time, 
+		self.update_menu()
+		self.menu.popup(None, None, gtk.status_icon_position_menu, button, time, 
 				self.status_icon)
 
 	def on_status_icon_size_changed(self, *args, **kwargs):
@@ -654,10 +630,13 @@ class Notifier:
 			print "Title string: " + title
 			print "Body string: " + body
 
-		# update tooltip
 		if self.options.status_icon and not self.options.once:
+			# update tooltip
 			self.status_icon.set_tooltip(re.sub("<.*?>", "", "%s\n%s\n(%s)"
 					% (title, body, self.status["state"])))
+
+			# update menu
+			self.update_menu()
 
 		# update notification text
 		self.notifier.update(title, body)
@@ -713,6 +692,16 @@ class Notifier:
 
 		return generate_notification or generate_status
 
+	def update_menu(self):
+		"""Hide/show the play and pause buttons in the menu depending on play 
+		state"""
+		if self.status["state"] == "play":
+			self.menu_pause.show()
+			self.menu_play.hide()
+		else:
+			self.menu_pause.hide()
+			self.menu_play.show()
+
 	# start and stop MPN
 	# --------------------------------------------------------------------------
 
@@ -759,6 +748,7 @@ class Notifier:
 		self.notifier.connect("closed", self.closed_cb)
 
 		if self.options.status_icon and not self.options.once:
+			# status icon
 			self.status_icon = gtk.StatusIcon()
 			self.status_icon.connect("activate", self.on_activate)
 			self.status_icon.connect("popup_menu", self.on_popup_menu)
@@ -770,6 +760,39 @@ class Notifier:
 			self.status_icon.set_visible(True)
 
 			self.notifier.attach_to_status_icon(self.status_icon)
+
+			# popup menu
+			self.menu = gtk.Menu()
+
+			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PAUSE)
+			w.connect("activate", self.pause_cb)
+			self.menu.append(w)
+			self.menu_pause = w
+
+			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PLAY)
+			w.connect("activate", self.play_cb)
+			self.menu.append(w)
+			self.menu_play = w
+
+			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PREVIOUS)
+			w.connect("activate", self.prev_cb)
+			self.menu.append(w)
+
+			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_NEXT)
+			w.connect("activate", self.next_cb)
+			self.menu.append(w)
+
+			self.menu.append(gtk.SeparatorMenuItem())
+
+			w = gtk.ImageMenuItem(gtk.STOCK_ABOUT)
+			w.connect("activate", self.show_about_dialog)
+			self.menu.append(w)
+
+			w = gtk.ImageMenuItem(gtk.STOCK_QUIT)
+			w.connect("activate", self.quit)
+			self.menu.append(w)
+
+			self.menu.show_all()
 
 		# param timeout is in seconds
 		if self.options.timeout == 0:
