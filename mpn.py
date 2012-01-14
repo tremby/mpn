@@ -298,13 +298,7 @@ class Notifier:
 	pixbuf_notification = None
 	pixbuf_statusicon = None
 	status_icon_size = None
-	re_t = re.compile('(%t)', re.S) #Title
-	re_a = re.compile('(%a)', re.S) #Artist
-	re_b = re.compile('(%b)', re.S) #alBum
-	re_d = re.compile('(%d)', re.S) #song Duration
-	re_f = re.compile('(%f)', re.S) #File
-	re_n = re.compile('(%n)', re.S) #track Number
-	re_p = re.compile('(%p)', re.S) #playlist Position
+	re = {}
 
 	def play_cb(self, *args, **kwargs):
 		if self.options.debug:
@@ -607,22 +601,14 @@ class Notifier:
 			title = self.title_txt
 			body = self.body_txt
 
-			# get values with the strings html safe
-			title = self.re_t.sub(self.get_title(), title)
-			title = self.re_f.sub(self.get_file(), title)
-			title = self.re_d.sub(self.get_time(), title)
-			title = self.re_a.sub(self.get_tag('artist'), title)
-			title = self.re_b.sub(self.get_tag('album'), title)
-			title = self.re_n.sub(self.get_tag('track'), title)
-			title = self.re_p.sub(self.get_tag('pos'), title)
-
-			body = self.re_t.sub(self.get_title(True), body)
-			body = self.re_f.sub(self.get_file(True), body)
-			body = self.re_d.sub(self.get_time(), body)
-			body = self.re_a.sub(self.get_tag('artist', True), body)
-			body = self.re_b.sub(self.get_tag('album', True), body)
-			body = self.re_n.sub(self.get_tag('track'), body)
-			body = self.re_p.sub(self.get_tag('pos'), body)
+			# perform placeholder substitutions on title and body
+			for x in self.re.itervalues():
+				if len(x) < 3:
+					args = ()
+				else:
+					args = x[2]
+				title = x[0].sub(x[1](*args), title)
+				body = x[0].sub(x[1](*args), body)
 
 		# show title and body for debug
 		if self.options.debug:
@@ -679,6 +665,17 @@ class Notifier:
 	def __init__(self, options):
 		"""Initialisation of mpd client and pynotify"""
 		self.options = options
+
+		# regular expressions
+		self.re = {
+				"t": (re.compile("(%t)", re.S), self.get_title),
+				"a": (re.compile("(%a)", re.S), self.get_tag, ("artist",)),
+				"b": (re.compile("(%b)", re.S), self.get_tag, ("album",)),
+				"d": (re.compile("(%d)", re.S), self.get_time),
+				"f": (re.compile("(%f)", re.S), self.get_file),
+				"n": (re.compile("(%n)", re.S), self.get_tag, ("track",)),
+				"p": (re.compile("(%p)", re.S), self.get_tag, ("pos",)),
+				}
 
 		# Contents are updated before displaying
 		self.notifier = pynotify.Notification("MPN")
