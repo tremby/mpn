@@ -53,19 +53,6 @@ import signal
 import Image
 import numpy
 
-def pixmap_dir():
-	"""get pixmap location"""
-	# FIXME: the absolute paths here only work on Unix and if it was installed 
-	# to the default place
-	for d in (os.path.join(os.path.dirname(__file__), "pixmaps"),
-			"/usr/local/share/pixmaps/mpn",
-			"/usr/share/pixmaps/mpn"):
-		if os.access(d, os.R_OK):
-			return d
-	return False
-PIXMAP_DIR = pixmap_dir()
-assert PIXMAP_DIR
-
 def make_svg(icon, s):
 	header = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 			<svg xmlns:svg="http://www.w3.org/2000/svg" 
