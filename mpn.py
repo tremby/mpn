@@ -698,7 +698,7 @@ class Notifier:
 				or coverpath != self.current_image_url:
 			generate_notification = True
 			generate_status = True
-		if self.options.status_icon and \
+		if self.options.status_icon and not self.options.once and \
 				self.status_icon_size != self.status_icon.get_size():
 			generate_status = True
 		if not self.options.status_icon or self.options.once:
