@@ -68,53 +68,179 @@ def pixmap_dir():
 PIXMAP_DIR = pixmap_dir()
 assert PIXMAP_DIR
 
-def make_svg(icon, size):
+def make_svg(icon, s):
 	header = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 			<svg xmlns:svg="http://www.w3.org/2000/svg" 
-			xmlns="http://www.w3.org/2000/svg" version="1.1" 
-			width="%s" 
-			height="%s">\n""" % (size, size)
+					xmlns="http://www.w3.org/2000/svg" version="1.1" 
+					xmlns:xlink="http://www.w3.org/1999/xlink" 
+					width="%s" 
+					height="%s">\n""" % (s, s)
 	footer = "</svg>\n"
 
-	# usable size (size minus 1-pixel outline on each side)
-	u = size - 2
+	if icon == "cd":
+		# main radii
+		r = [x * s for x in [0.5, 0.05, 0.48, 0.13]]
 
-	# size of pause bars
-	if u % 3 == 0:
-		pw = u / 3
-	elif u % 3 == 1:
-		if u == 4:
-			pw = 1 # edge case to keep gap visible
+		# start definitions block
+		body = "<defs>\n"
+
+		# mask for the whole CD
+		body = body + """
+				<mask id="cd">
+					<circle cx="0" cy="0" r="%f" fill="white"/>
+					<circle cx="0" cy="0" r="%f" fill="black"/>
+				</mask>""" % (r[0], r[1])
+
+		# mask for the shiny area
+		body = body + """
+				<mask id="shinybit">
+					<circle cx="0" cy="0" r="%f" fill="white"/>
+					<circle cx="0" cy="0" r="%f" fill="black"/>
+				</mask>""" % (r[2], r[3])
+
+		# gaussian blur for the shine
+		body = body + """
+				<filter id="blur">
+					<feGaussianBlur stdDeviation="%f"/>
+				</filter>""" % (0.05*s)
+
+		# shape for the shine
+		body = body + """<path id="shine" d="m %f,%f %f,0 %f,%f %f,0 z"/>\n""" \
+				% (-s, -s, 2*s, -2*s, 2*s, 2*s)
+
+		# gradient for gloss
+		body = body + """
+				<linearGradient id="whitefade"
+						x1="0" y1="0" x2="0" y2="100%%">
+					<stop offset="0%%" stop-color="white" stop-opacity="0"/>
+					<stop offset="100%%" stop-color="white" stop-opacity="1"/>
+				</linearGradient>\n"""
+
+		# end definitions block
+		body = body + "</defs>\n"
+
+		# group masking to the CD's shape and shifting everything into view so 
+		# 0,0 can be the centre
+		body = body + """<g mask="url(#cd)"
+				transform="translate(%f, %f)">\n""" % (0.5*s, 0.5*s)
+
+		# transparent outside, only visible when large
+		body = body + """<circle cx="0" cy="0" r="%f"
+				fill="none" stroke="#d0d0d0" stroke-width="%f"
+				opacity="0.4"/>""" % (0.5*s, 0.3*s)
+
+		# shiny bit
+		body = body + """
+				<g mask="url(#shinybit)">
+					<circle cx="0" cy="0" r="%f" fill="#b3b3b3"/>
+					<g filter="url(#blur)">
+						<use xlink:href="#shine" fill="white" opacity="0.9"
+								transform="rotate(30) scale(0.3, 1)"/>
+						<g opacity="0.75">
+							<use xlink:href="#shine" fill="purple"
+									transform="rotate(145) scale(0.15, 1)"/>
+							<use xlink:href="#shine" fill="blue"
+									transform="rotate(135) scale(0.15, 1)"/>
+							<use xlink:href="#shine" fill="cyan"
+									transform="rotate(125) scale(0.15, 1)"/>
+							<use xlink:href="#shine" fill="lime"
+									transform="rotate(115) scale(0.15, 1)"/>
+							<use xlink:href="#shine" fill="yellow"
+									transform="rotate(105) scale(0.15, 1)"/>
+							<use xlink:href="#shine" fill="red"
+									transform="rotate(95) scale(0.1, 1)"/>
+						</g>
+					</g>
+				</g>\n""" % (r[0])
+
+		# transparent centre bit
+		body = body + """<circle cx="0" cy="0" r="%f"
+				fill="#4b4b4b"
+				opacity="0.30"/>""" % (0.16*s)
+		body = body + """<circle cx="0" cy="0" r="%f"
+				fill="none" stroke="#2b2b2b" stroke-width="1"
+				opacity="0.15"/>""" % (0.105*s)
+		body = body + """<circle cx="0" cy="0" r="%f"
+				fill="none" stroke="#2b2b2b" stroke-width="1"
+				opacity="0.15"/>""" % (0.07*s)
+
+		# gloss
+		body = body + """<path
+				d="m %f,%f
+					C %f,%f %f,%f %f,%f
+					C %f,%f %f,%f %f,%f
+					C %f,%f %f,%f %f,%f
+					V %f H %f z"
+				fill="url(#whitefade)" opacity="0.15"/>\n""" % (
+						-0.5*s, 0.05*s, # start point just below left centre
+						-0.45*s, 0, -0.35*s, -0.03*s, -0.2*s, -0.03*s,
+						-0.03*s, -0.03*s, 0.03*s, 0.03*s, 0.2*s, 0.03*s,
+						0.35*s, 0.03*s, 0.45*s, 0, 0.5*s, -0.05*s,
+						-0.5*s, -0.5*s, # corners
+						)
+
+		# 1 pixel light rim
+		body = body + """<circle cx="0" cy="0" r="%f"
+				fill="none" stroke="#e0e0e0" stroke-width="4"
+				opacity="0.8"/>""" % (0.5*s)
+
+		# 1 pixel dark outline
+		body = body + """<circle cx="0" cy="0" r="%f"
+				fill="none" stroke="#606060" stroke-width="2"
+				opacity="0.7"/>""" % (0.5*s)
+		body = body + """<circle cx="0" cy="0" r="%f"
+				fill="none" stroke="#606060" stroke-width="2"
+				opacity="0.3"/>""" % (r[1])
+
+		# end group
+		body = body + "</g>\n"
+	else:
+		# usable size (size minus 1-pixel outline on each side)
+		u = s - 2
+
+		# size of pause bars
+		if u % 3 == 0:
+			pw = u / 3
+		elif u % 3 == 1:
+			if u == 4:
+				pw = 1 # edge case to keep gap visible
+			else:
+				pw = u / 3 + 1
 		else:
 			pw = u / 3 + 1
-	else:
-		pw = u / 3 + 1
 
-	paths = {
-			"play": [
-					[(1, 1), (0, u), (u, -u/2.0)],
-					],
-			"stop": [
-					[(1, 1), (0, u), (u, 0), (0, -u)],
-					],
-			"pause": [
-					[(1, 1), (0, u), (pw, 0), (0, -u)],
-					[(u+1, 1), (0, u), (-pw, 0), (0, -u)],
-					],
-			}
+		paths = {
+				"play": [
+						[(1, 1), (0, u), (u, -u/2.0)],
+						],
+				"stop": [
+						[(1, 1), (0, u), (u, 0), (0, -u)],
+						],
+				"pause": [
+						[(1, 1), (0, u), (pw, 0), (0, -u)],
+						[(u+1, 1), (0, u), (-pw, 0), (0, -u)],
+						],
+				}
 
-	body = ""
-	for path in paths[icon]:
-		# outline
-		body = """%s<path d="m %s z"
-				style="fill:none;stroke:black;stroke-width:2;opacity:0.8"/>""" \
-				% (body, " ".join("%s,%s" % p for p in path))
+		body = ""
+		for path in paths[icon]:
+			# outline
+			body = """%s<path d="m %s z"
+					fill="none" stroke="black" stroke-width="2" opacity="0.8"/>""" \
+					% (body, " ".join("%s,%s" % p for p in path))
 
-		# fill
-		body = """%s<path d="m %s z"
-				style="fill:white;stroke:none;opacity:0.8"/>""" \
-				% (body, " ".join("%s,%s" % p for p in path))
+			# fill
+			body = """%s<path d="m %s z"
+					fill="white" stroke="none" opacity="0.8"/>""" \
+					% (body, " ".join("%s,%s" % p for p in path))
+
 	return "%s%s%s" % (header, body, footer)
+
+def svg_to_pixbuf(svg):
+	pl = gtk.gdk.PixbufLoader("svg")
+	pl.write(svg)
+	pl.close()
+	return pl.get_pixbuf()
 
 def convert_time(raw):
 	"""Format a number of seconds to the hh:mm:ss format"""
@@ -413,6 +539,82 @@ class Notifier:
 			return False
 		return True
 
+	def regenerate_images_if_necessary(self):
+		"""regenerate images for notification and status icon if necessary, 
+		return true if anything changed"""
+
+		coverpath = None
+		if "file" in self.current and self.options.music_path is not None:
+			dirname = os.path.dirname(
+					os.path.join(self.options.music_path, self.current["file"]))
+			for f in possible_cover_filenames():
+				f = fileexists_insensitive(os.path.join(dirname, f))
+				if f:
+					coverpath = f
+					break
+
+		generate_notification = False
+		generate_status = False
+
+		if self.pixbuf_notification is None \
+				or coverpath != self.current_image_url:
+			generate_notification = True
+			generate_status = True
+		if self.options.status_icon and \
+				self.status_icon_size != self.status_icon.get_size():
+			generate_status = True
+		if not self.options.status_icon or self.options.once:
+			generate_status = False
+
+		self.current_image_url = coverpath
+
+		if generate_notification:
+			self.generate_notification_image()
+		if generate_status:
+			self.generate_status_image()
+
+		return generate_notification or generate_status
+
+	def generate_notification_image(self):
+		if self.current_image_url is None:
+			self.pixbuf_notification = svg_to_pixbuf(
+					make_svg("cd", self.options.icon_size))
+		else:
+			self.pixbuf_notification = gtk.gdk.pixbuf_new_from_array(
+					numpy.array(Image.open(self.current_image_url).resize(
+							(self.options.icon_size, self.options.icon_size),
+							Image.ANTIALIAS)),
+					gtk.gdk.COLORSPACE_RGB, 8)
+
+	def generate_status_image(self):
+		si_size = self.status_icon.get_size()
+		self.status_icon_size = si_size
+
+		if self.current_image_url is None:
+			si = svg_to_pixbuf(make_svg("cd", si_size))
+		else:
+			si = gtk.gdk.pixbuf_new_from_array(
+					numpy.array(Image.open(self.current_image_url).resize(
+							(si_size, si_size), Image.ANTIALIAS)),
+					gtk.gdk.COLORSPACE_RGB, 8)
+
+		if not si.get_has_alpha():
+			si = si.add_alpha(True, 0, 0, 0)
+
+		self.pixbuf_statusicon = {}
+		p_size = int(round(si_size * self.options.play_state_icon_size))
+		for name in ("stop", "play", "pause"):
+			self.pixbuf_statusicon[name] = si.copy()
+			if p_size == 0:
+				continue
+
+			p = svg_to_pixbuf(make_svg(name, p_size))
+			p.composite(self.pixbuf_statusicon[name],
+					si_size - p_size, si_size - p_size,
+					p_size, p_size,
+					si_size - p_size, si_size - p_size,
+					1, 1, gtk.gdk.INTERP_NEAREST, 255)
+
 	def update(self):
 		if "file" not in self.current:
 			title = "no song"
@@ -451,95 +653,21 @@ class Notifier:
 		# update notification text
 		self.notifier.update(title, body)
 
-		# get and process album art
-		if "file" not in self.current:
-			self.current_image_url = None
-		elif self.options.music_path is not None:
-			artist = self.get_tag("albumartist")
-			if not artist:
-				artist = self.get_tag("artist")
-			dirname = os.path.dirname(
-					os.path.join(self.options.music_path, self.current["file"]))
-			for coverfilename in possible_cover_filenames():
-				coverpath = fileexists_insensitive(
-						os.path.join(dirname, coverfilename))
-				if not coverpath:
-					self.current_image_url = None
-				else:
-					if coverpath == self.current_image_url:
-						# don't regenerate images if it's the same source image
-						if not self.options.status_icon or self.options.once:
-							break
-						elif self.status_icon is not None and \
-								self.status_icon_size \
-								== self.status_icon.get_size():
-							break
-					self.current_image_url = coverpath
-					im = Image.open(coverpath)
-
-					# resize for notification image
-					im_notification = im.resize(
-							(self.options.icon_size, self.options.icon_size),
-							Image.ANTIALIAS)
-					self.pixbuf_notification = \
-							gtk.gdk.pixbuf_new_from_array(
-									numpy.array(im_notification),
-									gtk.gdk.COLORSPACE_RGB, 8)
-
-					# resize for status icon and paste on state symbols
-					if self.options.status_icon and not self.options.once:
-						si_size = self.status_icon.get_size()
-						self.status_icon_size = si_size
-						im_statusicon = im.resize((si_size, si_size), 
-								Image.ANTIALIAS)
-						si = gtk.gdk.pixbuf_new_from_array(
-										numpy.array(im_statusicon),
-										gtk.gdk.COLORSPACE_RGB, 8)
-						if not si.get_has_alpha():
-							si = si.add_alpha(True, 0, 0, 0)
-
-						self.pixbuf_statusicon = {}
-						p_size = int(si_size * 
-								self.options.play_state_icon_size)
-						for name in ("stop", "play", "pause"):
-							self.pixbuf_statusicon[name] = si.copy()
-							if p_size == 0:
-								continue
-
-							pl = gtk.gdk.PixbufLoader("svg")
-							pl.write(make_svg(name, p_size))
-							pl.close()
-							p = pl.get_pixbuf()
-
-							p.composite(self.pixbuf_statusicon[name],
-									si_size - p_size, si_size - p_size,
-									p_size, p_size,
-									si_size - p_size, si_size - p_size,
-									1, 1, gtk.gdk.INTERP_NEAREST, 255)
-					break
-
-		# update status icon
-		if self.options.status_icon and not self.options.once:
-			if self.current_image_url is None:
-				self.status_icon.set_from_stock(gtk.STOCK_CDROM) # TODO: change this
-			else:
-				if self.options.debug:
-					print "setting icon, state %s" % self.status["state"]
-				self.status_icon.set_from_pixbuf(
-						self.pixbuf_statusicon[self.status["state"]])
+		# update images
+		images_changed = self.regenerate_images_if_necessary()
 
 		# update notification icon
-		if self.current_image_url is None:
-			self.notifier.set_icon_from_pixbuf(
-					gtk.gdk.pixbuf_new_from_file_at_size(
-							gtk.icon_theme_get_default().lookup_icon(
-									self.options.default_icon,
-									self.options.icon_size,
-									0).get_filename(),
-							self.options.icon_size,
-							self.options.icon_size))
-		else:
+		if images_changed:
 			self.notifier.set_icon_from_pixbuf(self.pixbuf_notification)
+
+		# update status icon (not only when images changed -- play state may 
+		# have changed)
+		if self.options.status_icon and not self.options.once:
+			if self.options.debug:
+				print "setting icon, state %s" % self.status["state"]
+			self.status_icon.set_from_pixbuf(
+					self.pixbuf_statusicon[self.status["state"]])
+
 
 	def player_cb(self, *args, **kwargs):
 		self.mpd.fetch_idle()
@@ -580,7 +708,8 @@ class Notifier:
 			self.status_icon.connect("popup_menu", self.on_popup_menu)
 			self.status_icon.connect("size_changed",
 					self.on_status_icon_size_changed)
-			self.status_icon.set_from_stock(gtk.STOCK_CDROM) # TODO: change this
+			self.status_icon.set_from_pixbuf(
+					svg_to_pixbuf(make_svg("cd", self.status_icon.get_size())))
 			self.status_icon.set_tooltip("MPN")
 			self.status_icon.set_visible(True)
 
@@ -672,6 +801,8 @@ class Notifier:
 		about_dialog.set_name("MPN")
 		about_dialog.set_version(VERSION)
 
+		about_dialog.set_logo(svg_to_pixbuf(make_svg("cd", 196)))
+
 		authors = []
 		for i, n in enumerate(AUTHOR.split(", ")):
 			authors.append(n + " <" + AUTHOR_EMAIL.split(", ")[i] + ">")
@@ -687,7 +818,6 @@ DEFAULT_OPTIONS = {
 	"persist": True,
 	"timeout": 3,
 	"keys": True,
-	"default_icon": "gnome-mime-audio",
 	"icon_size": 128,
 	"music_path": "/var/lib/mpd/music",
 	"title_format": "%t",
@@ -758,10 +888,6 @@ class Application:
 				help="Notify once and exit %s" % d("once"))
 		parser.add_option("--no-once", dest="once", action="store_false", 
 				help=optparse.SUPPRESS_HELP)
-		parser.add_option("-i", "--default-icon", metavar="ICON", 
-				default=default_options['default_icon'],
-				help="Default icon URI/name for notification window (default: "
-						"%default)")
 		parser.add_option("-s", "--icon-size", type="int", metavar="PIXELS", 
 				default=default_options['icon_size'],
 				help="Size in pixels to which the cover art should be resized "
