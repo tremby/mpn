@@ -300,49 +300,25 @@ class Notifier:
 	status_icon_size = None
 	re = {}
 
+
+	def _mpd_command(self, command):
+		if self.options.debug:
+			print "mpd command: %s" % command
+		if not self.options.once:
+			self.mpd.noidle()
+			self.mpd.fetch_idle()
+		command()
+		if self.options.once:
+			self.quit()
+		self.mpd.send_idle("player")
 	def play_cb(self, *args, **kwargs):
-		if self.options.debug:
-			print "Play"
-		if not self.options.once:
-			self.mpd.noidle()
-			self.mpd.fetch_idle()
-		self.mpd.play()
-		if self.options.once:
-			self.quit()
-		self.mpd.send_idle()
-
+		self._mpd_command(self.mpd.play)
 	def pause_cb(self, *args, **kwargs):
-		if self.options.debug:
-			print "Pause"
-		if not self.options.once:
-			self.mpd.noidle()
-			self.mpd.fetch_idle()
-		self.mpd.pause()
-		if self.options.once:
-			self.quit()
-		self.mpd.send_idle()
-
+		self._mpd_command(self.mpd.pause)
 	def prev_cb(self, *args, **kwargs):
-		if self.options.debug:
-			print "Previous song"
-		if not self.options.once:
-			self.mpd.noidle()
-			self.mpd.fetch_idle()
-		self.mpd.previous()
-		if self.options.once:
-			self.quit()
-		self.mpd.send_idle()
-
+		self._mpd_command(self.mpd.previous)
 	def next_cb(self, *args, **kwargs):
-		if self.options.debug:
-			print "Next song"
-		if not self.options.once:
-			self.mpd.noidle()
-			self.mpd.fetch_idle()
-		self.mpd.next()
-		if self.options.once:
-			self.quit()
-		self.mpd.send_idle()
+		self._mpd_command(self.mpd.next)
 
 	def closed_cb(self, *args, **kwargs):
 		if self.options.debug:
