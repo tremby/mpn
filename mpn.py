@@ -53,6 +53,68 @@ import signal
 import Image
 import numpy
 
+# utility
+# ------------------------------------------------------------------------------
+
+def convert_time(raw):
+	"""Format a number of seconds to the hh:mm:ss format"""
+	# Converts raw time to "hh:mm:ss" with leading zeros as appropriate
+
+	hour, minutes, sec = ["%02d" % c for c in (raw/3600,
+			(raw%3600)/60, raw%60)]
+
+	if hour == "00":
+		if minutes.startswith("0"):
+			minutes = minutes[1:]
+		return minutes + ":" + sec
+	else:
+		if hour.startswith("0"):
+			hour = hour[1:]
+		return hour + ":" + minutes + ":" + sec
+
+def fileexists_insensitive(path):
+	"""check if a file exists, case-insensitively for the last component 
+	(basename)"""
+	searchdir = os.path.dirname(path)
+	searchfile = os.path.basename(path).lower()
+	if not os.path.exists(searchdir):
+		return False
+	files = os.listdir(searchdir)
+	for file in files:
+		if file.lower() == searchfile:
+			return os.path.join(searchdir, file)
+	return False
+
+def possible_cover_filenames():
+	"""return a whole bunch of possible filenames for cover art"""
+	PREFIXES = [
+		"",
+		".",
+	]
+	MIDDLES = [
+		"cover",
+		"coverart",
+		"frontcover",
+		"front",
+		"albumart",
+		"albumcover",
+		"album",
+		"folder",
+	]
+	SUFFIXES = [
+		".png",
+		".jpg",
+	]
+	filenames = []
+	for pre in PREFIXES:
+		for mid in MIDDLES:
+			for suf in SUFFIXES:
+				filenames.append(pre + mid + suf)
+	return filenames
+
+# svg
+# ------------------------------------------------------------------------------
+
 def make_svg(icon, s):
 	header = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 			<svg xmlns:svg="http://www.w3.org/2000/svg" 
@@ -227,61 +289,8 @@ def svg_to_pixbuf(svg):
 	pl.close()
 	return pl.get_pixbuf()
 
-def convert_time(raw):
-	"""Format a number of seconds to the hh:mm:ss format"""
-	# Converts raw time to 'hh:mm:ss' with leading zeros as appropriate
-
-	hour, minutes, sec = ['%02d' % c for c in (raw/3600,
-			(raw%3600)/60, raw%60)]
-
-	if hour == '00':
-		if minutes.startswith('0'):
-			minutes = minutes[1:]
-		return minutes + ':' + sec
-	else:
-		if hour.startswith('0'):
-			hour = hour[1:]
-		return hour + ':' + minutes + ':' + sec
-
-def fileexists_insensitive(path):
-	"""check if a file exists, case-insensitively for the last component 
-	(basename)"""
-	searchdir = os.path.dirname(path)
-	searchfile = os.path.basename(path).lower()
-	if not os.path.exists(searchdir):
-		return False
-	files = os.listdir(searchdir)
-	for file in files:
-		if file.lower() == searchfile:
-			return os.path.join(searchdir, file)
-	return False
-
-def possible_cover_filenames():
-	"""return a whole bunch of possible filenames for cover art"""
-	PREFIXES = [
-		"",
-		".",
-	]
-	MIDDLES = [
-		"cover",
-		"coverart",
-		"frontcover",
-		"front",
-		"albumart",
-		"albumcover",
-		"album",
-		"folder",
-	]
-	SUFFIXES = [
-		".png",
-		".jpg",
-	]
-	filenames = []
-	for pre in PREFIXES:
-		for mid in MIDDLES:
-			for suf in SUFFIXES:
-				filenames.append(pre + mid + suf)
-	return filenames
+# main class
+# ------------------------------------------------------------------------------
 
 class Notifier:
 	"Main class for mpn"
@@ -300,6 +309,8 @@ class Notifier:
 	status_icon_size = None
 	re = {}
 
+	# callbacks
+	# --------------------------------------------------------------------------
 
 	def _mpd_command(self, command):
 		if self.options.debug:
@@ -326,16 +337,88 @@ class Notifier:
 		if self.options.once:
 			self.quit()
 
+	def player_cb(self, *args, **kwargs):
+		self.mpd.fetch_idle()
+		self.checkstate()
+		self.mpd.send_idle("player")
+		return True
+
+	def on_activate(self, *args, **kwargs):
+		"""Status icon was clicked"""
+		if self.status["state"] in ["play", "pause"]:
+			self.notifier.show()
+
+	def on_popup_menu(self, icon, button, time):
+		"""Status icon was right-clicked"""
+		menu = gtk.Menu()
+
+		if self.status["state"] == "play":
+			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PAUSE)
+			w.connect("activate", self.pause_cb)
+		else:
+			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PLAY)
+			w.connect("activate", self.play_cb)
+		# FIXME: presence of play/pause doesn't switch when menu is already open 
+		# and state changes
+		menu.append(w)
+		w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PREVIOUS)
+		w.connect("activate", self.prev_cb)
+		menu.append(w)
+		w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_NEXT)
+		w.connect("activate", self.next_cb)
+		menu.append(w)
+
+		menu.append(gtk.SeparatorMenuItem())
+
+		w = gtk.ImageMenuItem(gtk.STOCK_ABOUT)
+		w.connect("activate", self.show_about_dialog)
+		menu.append(w)
+		w = gtk.ImageMenuItem(gtk.STOCK_QUIT)
+		w.connect("activate", self.quit)
+		menu.append(w)
+
+		menu.show_all()
+		menu.popup(None, None, gtk.status_icon_position_menu, button, time, 
+				self.status_icon)
+
+	def on_status_icon_size_changed(self, *args, **kwargs):
+		"""Status icon's size changed"""
+		self.update()
+
+	def show_about_dialog(self, widget):
+		"""About dialog requested"""
+		about_dialog = gtk.AboutDialog()
+
+		about_dialog.set_destroy_with_parent(True)
+		about_dialog.set_name("MPN")
+		about_dialog.set_version(VERSION)
+
+		about_dialog.set_logo(svg_to_pixbuf(make_svg("cd", 196)))
+
+		authors = []
+		for i, n in enumerate(AUTHOR.split(", ")):
+			authors.append(n + " <" + AUTHOR_EMAIL.split(", ")[i] + ">")
+		about_dialog.set_authors(authors)
+
+		about_dialog.run()
+		about_dialog.destroy()
+
+	# environment variables
+	# --------------------------------------------------------------------------
+
 	def get_host(self):
 		"""get host name from MPD_HOST env variable"""
-		host = os.environ.get('MPD_HOST', 'localhost')
-		if '@' in host:
-			return host.split('@', 1)
+		host = os.environ.get("MPD_HOST", "localhost")
+		if "@" in host:
+			return host.split("@", 1)
 		return host
 
 	def get_port(self):
 		"""get host name from MPD_PORT env variable"""
-		return os.environ.get('MPD_PORT', 6600)
+		return os.environ.get("MPD_PORT", 6600)
+
+	# current status
+	# --------------------------------------------------------------------------
 
 	def get_title(self, safe=False):
 		"""Get the current song title"""
@@ -359,7 +442,7 @@ class Notifier:
 		"""Get current time and total length of the current song"""
 		try:
 			time = self.status["time"]
-			now, length = [int(c) for c in time.split(':')]
+			now, length = [int(c) for c in time.split(":")]
 			now_time = convert_time(now)
 			length_time = convert_time(length)
 
@@ -402,6 +485,9 @@ class Notifier:
 			return cgi.escape(file)
 		return file
 
+	# mpd connection
+	# --------------------------------------------------------------------------
+
 	def connect(self):
 		try:
 			self.mpd.connect(self.host, self.port)
@@ -431,6 +517,9 @@ class Notifier:
 			print "mpn: Lost connection to server, exiting...\n"
 			self.quit(1)
 			return False
+
+	# when idle calls back find out what changed
+	# --------------------------------------------------------------------------
 
 	def checkstate(self):
 		"""Check what has changed, take action"""
@@ -481,6 +570,9 @@ class Notifier:
 				or song_changed and status["state"] != "stop":
 			self.show_notification()
 
+	# show or close the notification
+	# --------------------------------------------------------------------------
+
 	def close_notification(self):
 		try:
 			self.notifier.close()
@@ -493,41 +585,8 @@ class Notifier:
 			return False
 		return True
 
-	def regenerate_images_if_necessary(self):
-		"""regenerate images for notification and status icon if necessary, 
-		return true if anything changed"""
-
-		coverpath = None
-		if "file" in self.current and self.options.music_path is not None:
-			dirname = os.path.dirname(
-					os.path.join(self.options.music_path, self.current["file"]))
-			for f in possible_cover_filenames():
-				f = fileexists_insensitive(os.path.join(dirname, f))
-				if f:
-					coverpath = f
-					break
-
-		generate_notification = False
-		generate_status = False
-
-		if self.pixbuf_notification is None \
-				or coverpath != self.current_image_url:
-			generate_notification = True
-			generate_status = True
-		if self.options.status_icon and \
-				self.status_icon_size != self.status_icon.get_size():
-			generate_status = True
-		if not self.options.status_icon or self.options.once:
-			generate_status = False
-
-		self.current_image_url = coverpath
-
-		if generate_notification:
-			self.generate_notification_image()
-		if generate_status:
-			self.generate_status_image()
-
-		return generate_notification or generate_status
+	# image manipulation
+	# --------------------------------------------------------------------------
 
 	def generate_notification_image(self):
 		if self.current_image_url is None:
@@ -569,7 +628,11 @@ class Notifier:
 					si_size - p_size, si_size - p_size,
 					1, 1, gtk.gdk.INTERP_NEAREST, 255)
 
+	# take action when something we care about has changed
+	# --------------------------------------------------------------------------
+
 	def update(self):
+		"""Something we care about has changed -- take necessary actions"""
 		if "file" not in self.current:
 			title = "no song"
 			body = "no song is currently playing"
@@ -614,21 +677,54 @@ class Notifier:
 			self.status_icon.set_from_pixbuf(
 					self.pixbuf_statusicon[self.status["state"]])
 
+	def regenerate_images_if_necessary(self):
+		"""Regenerate images for notification and status icon if necessary, 
+		return true if anything changed"""
 
-	def player_cb(self, *args, **kwargs):
-		self.mpd.fetch_idle()
-		self.checkstate()
-		self.mpd.send_idle('player')
-		return True
+		coverpath = None
+		if "file" in self.current and self.options.music_path is not None:
+			dirname = os.path.dirname(
+					os.path.join(self.options.music_path, self.current["file"]))
+			for f in possible_cover_filenames():
+				f = fileexists_insensitive(os.path.join(dirname, f))
+				if f:
+					coverpath = f
+					break
+
+		generate_notification = False
+		generate_status = False
+
+		if self.pixbuf_notification is None \
+				or coverpath != self.current_image_url:
+			generate_notification = True
+			generate_status = True
+		if self.options.status_icon and \
+				self.status_icon_size != self.status_icon.get_size():
+			generate_status = True
+		if not self.options.status_icon or self.options.once:
+			generate_status = False
+
+		self.current_image_url = coverpath
+
+		if generate_notification:
+			self.generate_notification_image()
+		if generate_status:
+			self.generate_status_image()
+
+		return generate_notification or generate_status
+
+	# start and stop MPN
+	# --------------------------------------------------------------------------
 
 	def run(self):
-		"""Launch the iteration"""
+		"""Launch the first iteration"""
 		self.checkstate()
 		if not self.options.once:
-			self.mpd.send_idle('player')
+			self.mpd.send_idle("player")
 			gobject.io_add_watch(self.mpd, gobject.IO_IN, self.player_cb)
 
 	def quit(self, *args, **kwargs):
+		"""Shut down cleanly"""
 		self.close_notification()
 		self.disconnect()
 		gtk.main_quit()
@@ -637,6 +733,9 @@ class Notifier:
 		except AttributeError:
 			code = 0
 		sys.exit(code)
+
+	# initialize MPN
+	# --------------------------------------------------------------------------
 
 	def __init__(self, options):
 		"""Initialisation of mpd client and pynotify"""
@@ -712,88 +811,20 @@ class Notifier:
 				self.quit(1)
 			time.sleep(5)
 
-	def on_activate(self, *args, **kwargs):
-		if self.status["state"] in ['play', 'pause']:
-			self.notifier.show()
-
-	def on_popup_menu(self, icon, button, time):
-		menu = gtk.Menu()
-
-		if self.status["state"] == "play":
-			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PAUSE)
-			w.connect("activate", self.pause_cb)
-		else:
-			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PLAY)
-			w.connect("activate", self.play_cb)
-		# FIXME: presence of play/pause doesn't switch when menu is already open 
-		# and state changes
-		menu.append(w)
-		w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PREVIOUS)
-		w.connect("activate", self.prev_cb)
-		menu.append(w)
-		w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_NEXT)
-		w.connect("activate", self.next_cb)
-		menu.append(w)
-
-		menu.append(gtk.SeparatorMenuItem())
-
-		w = gtk.ImageMenuItem(gtk.STOCK_ABOUT)
-		w.connect("activate", self.show_about_dialog)
-		menu.append(w)
-		w = gtk.ImageMenuItem(gtk.STOCK_QUIT)
-		w.connect("activate", self.quit)
-		menu.append(w)
-
-		menu.show_all()
-		menu.popup(None, None, gtk.status_icon_position_menu, button, time, 
-				self.status_icon)
-
-	def on_status_icon_size_changed(self, *args, **kwargs):
-		self.update()
-
-	def show_about_dialog(self, widget):
-		about_dialog = gtk.AboutDialog()
-
-		about_dialog.set_destroy_with_parent(True)
-		about_dialog.set_name("MPN")
-		about_dialog.set_version(VERSION)
-
-		about_dialog.set_logo(svg_to_pixbuf(make_svg("cd", 196)))
-
-		authors = []
-		for i, n in enumerate(AUTHOR.split(", ")):
-			authors.append(n + " <" + AUTHOR_EMAIL.split(", ")[i] + ">")
-		about_dialog.set_authors(authors)
-
-		about_dialog.run()
-		about_dialog.destroy()
-
-DEFAULT_OPTIONS = {
-	"daemon": False,
-	"once": False,
-	"debug": False,
-	"persist": True,
-	"timeout": 3,
-	"keys": True,
-	"icon_size": 128,
-	"music_path": "/var/lib/mpd/music",
-	"title_format": "%t",
-	"body_format": "<b>%b</b><br><i>%a</i>",
-	"status_icon": True,
-	"play_state_icon_size": 0.4,
-	}
+# application class
+# ------------------------------------------------------------------------------
 
 class Application:
 	def run(self):
 		default_options = {}
 		default_options.update(DEFAULT_OPTIONS)
 		try:
-			stream = file(os.path.expanduser('~/.mpnrc'), 'r')
+			stream = file(os.path.expanduser("~/.mpnrc"), "r")
 			default_options.update(yaml.load(stream))
 			stream.close()
 		except IOError:
 			try:
-				stream = file('mpnrc', 'r')
+				stream = file("mpnrc", "r")
 				default_options.update(yaml.load(stream))
 				stream.close()
 			except IOError:
@@ -817,36 +848,36 @@ class Application:
 				help="Dump YAML of the default options, suitable for use as "
 						"a ~/.mpnrc file, and exit")
 		parser.add_option("--debug", action="store_true", 
-				default=default_options['debug'],
+				default=default_options["debug"],
 				help="Turn on debugging information %s" % d("debug"))
 		parser.add_option("--no-debug", dest="debug", action="store_false", 
 				help=optparse.SUPPRESS_HELP)
 		parser.add_option("-d", "--daemon", action="store_true", 
-				default=default_options['daemon'],
+				default=default_options["daemon"],
 				help="Fork into the background %s" % d("daemon"))
 		parser.add_option("--no-daemon", dest="daemon", action="store_false", 
 				help=optparse.SUPPRESS_HELP)
 		parser.add_option("-p", "--persist", action="store_true", 
-				default=default_options['persist'],
+				default=default_options["persist"],
 				help="Do not exit when connection fails %s" % d("persist"))
 		parser.add_option("--no-persist", dest="persist", action="store_false", 
 				help=optparse.SUPPRESS_HELP)
 		parser.add_option("-t", "--timeout", type="int", metavar="SECS", 
-				default=default_options['timeout'],
+				default=default_options["timeout"],
 				help="Notification timeout in secs (default %default, use 0 to "
 						"disable)")
 		parser.add_option("-k", "--keys", action="store_true", 
-				default=default_options['keys'],
+				default=default_options["keys"],
 				help="Add Prev/Next buttons to notify window %s" % d("keys"))
 		parser.add_option("--no-keys", dest="keys", action="store_false", 
 				help=optparse.SUPPRESS_HELP)
 		parser.add_option("-o", "--once", action="store_true", 
-				default=default_options['once'],
+				default=default_options["once"],
 				help="Notify once and exit %s" % d("once"))
 		parser.add_option("--no-once", dest="once", action="store_false", 
 				help=optparse.SUPPRESS_HELP)
 		parser.add_option("-s", "--icon-size", type="int", metavar="PIXELS", 
-				default=default_options['icon_size'],
+				default=default_options["icon_size"],
 				help="Size in pixels to which the cover art should be resized "
 						"in notifications (default: %default)")
 		parser.add_option("-m", "--music-path", metavar="PATH", 
@@ -854,7 +885,7 @@ class Application:
 				help="Path to music files, where album art will be looked for "
 						"(default: %default, use empty string to disable)")
 		parser.add_option("--status-icon", action="store_true", 
-				default=default_options['status_icon'],
+				default=default_options["status_icon"],
 				help="Enable status icon %s" % d("status_icon"))
 		parser.add_option("--no-status-icon", dest="status_icon", 
 				action="store_false", help=optparse.SUPPRESS_HELP)
@@ -878,10 +909,10 @@ class Application:
 						"<b> </b> bold text / "
 						"<br> line break")
 		group.add_option("-F", "--title-format", 
-				default=default_options['title_format'], metavar="FORMAT",
+				default=default_options["title_format"], metavar="FORMAT",
 				help="Format for the notification header (defalut %default)")
 		group.add_option("-f", "--body-format", 
-				default=default_options['body_format'], metavar="FORMAT",
+				default=default_options["body_format"], metavar="FORMAT",
 				help="Format for the notification body (defalut %default)")
 		parser.add_option_group(group)
 
@@ -897,7 +928,7 @@ class Application:
 			sys.exit()
 
 		# initializate the notifier
-		if not pynotify.init('mpn'):
+		if not pynotify.init("mpn"):
 			print "Failed to initialize pynotify module"
 			sys.exit(1)
 
@@ -916,6 +947,27 @@ class Application:
 				gtk.main()
 		except KeyboardInterrupt:
 			pass
+
+# defaults
+# ------------------------------------------------------------------------------
+
+DEFAULT_OPTIONS = {
+	"daemon": False,
+	"once": False,
+	"debug": False,
+	"persist": True,
+	"timeout": 3,
+	"keys": True,
+	"icon_size": 128,
+	"music_path": "/var/lib/mpd/music",
+	"title_format": "%t",
+	"body_format": "<b>%b</b><br><i>%a</i>",
+	"status_icon": True,
+	"play_state_icon_size": 0.4,
+	}
+
+# run if called directly
+# ------------------------------------------------------------------------------
 
 if __name__ == "__main__":
 	app = Application()
