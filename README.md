@@ -26,6 +26,17 @@ The following python packages are recommended:
 
 - python-imaging
 
+Installation and running
+------------------------
+
+Installation is optional (it'll run from its source directory). To install do 
+the normal Python thing:
+
+    sudo python setup.py install
+
+To run, execute its startup script. If installed that's just `mpn`, otherwise 
+`./mpn` if in the same directory.
+
 Configuration
 -------------
 
