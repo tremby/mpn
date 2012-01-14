@@ -311,6 +311,7 @@ class Notifier:
 	menu = None
 	menu_play = None
 	menu_pause = None
+	menu_stop = None
 
 	# callbacks
 	# --------------------------------------------------------------------------
@@ -695,14 +696,18 @@ class Notifier:
 		return generate_notification or generate_status
 
 	def update_menu(self):
-		"""Hide/show the play and pause buttons in the menu depending on play 
-		state"""
+		"""Hide/show the play, pause and stop buttons in the menu depending on 
+		play state"""
 		if self.status["state"] == "play":
 			self.menu_pause.show()
 			self.menu_play.hide()
 		else:
 			self.menu_pause.hide()
 			self.menu_play.show()
+		if self.status["state"] == "stop":
+			self.menu_stop.hide()
+		else:
+			self.menu_stop.show()
 
 	# start and stop MPN
 	# --------------------------------------------------------------------------
@@ -779,6 +784,7 @@ class Notifier:
 			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_STOP)
 			w.connect("activate", self.stop_cb)
 			self.menu.append(w)
+			self.menu_stop = w
 
 			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PREVIOUS)
 			w.connect("activate", self.prev_cb)
