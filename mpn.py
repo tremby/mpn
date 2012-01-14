@@ -305,7 +305,6 @@ class Notifier:
 	status = None
 	current = None
 	notifier = None
-	iterate_handler = None
 	title_txt = None
 	body_txt = None
 	current_image_url = None
