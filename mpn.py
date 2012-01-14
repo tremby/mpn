@@ -53,8 +53,6 @@ import signal
 import Image
 import numpy
 
-MPN = None
-
 def pixmap_dir():
 	"""get pixmap location"""
 	# FIXME: the absolute paths here only work on Unix and if it was installed 
@@ -941,7 +939,7 @@ class Application:
 			print "Failed to initialize pynotify module"
 			sys.exit(1)
 
-		MPN = Notifier(options=options)
+		mpn = Notifier(options=options)
 
 		# fork if necessary
 		if options.daemon and not options.debug:
@@ -950,7 +948,7 @@ class Application:
 
 		# run the notifier
 		try:
-			MPN.run()
+			mpn.run()
 			# We only need the main loop when iterating or if keys are enabled
 			if options.keys or not options.once:
 				gtk.main()
