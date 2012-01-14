@@ -886,7 +886,10 @@ class Application:
 		parser.add_option_group(group)
 
 		# parse the commandline
-		(options, _) = parser.parse_args()
+		(options, args) = parser.parse_args()
+
+		if len(args):
+			optionparser.error("Expected no non-option arguments")
 
 		# dump default options if requested
 		if options.show_defaults:
