@@ -329,6 +329,8 @@ class Notifier:
 		self._mpd_command(self.mpd.play)
 	def pause_cb(self, *args, **kwargs):
 		self._mpd_command(self.mpd.pause)
+	def stop_cb(self, *args, **kwargs):
+		self._mpd_command(self.mpd.stop)
 	def prev_cb(self, *args, **kwargs):
 		self._mpd_command(self.mpd.previous)
 	def next_cb(self, *args, **kwargs):
@@ -773,6 +775,10 @@ class Notifier:
 			w.connect("activate", self.play_cb)
 			self.menu.append(w)
 			self.menu_play = w
+
+			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_STOP)
+			w.connect("activate", self.stop_cb)
+			self.menu.append(w)
 
 			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PREVIOUS)
 			w.connect("activate", self.prev_cb)
