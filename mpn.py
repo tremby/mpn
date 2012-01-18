@@ -428,7 +428,7 @@ class Notifier:
 			if title == "":
 				title = "???"
 		if self.options.debug:
-			print "Title :" + title
+			print "Title: %s" % title
 		if safe:
 			return cgi.escape(title)
 		return title
@@ -442,7 +442,7 @@ class Notifier:
 			length_time = convert_time(length)
 
 			if self.options.debug:
-				print "Position : " + now_time + " / " + length_time
+				print "Position: %s/%s" % (now_time, length_time)
 			if elapsed:
 				return now_time
 			return length_time
