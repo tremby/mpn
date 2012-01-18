@@ -502,9 +502,7 @@ class Notifier:
 		try:
 			self.mpd.disconnect()
 			return True
-		except mpd.socket.error:
-			return False
-		except mpd.ConnectionError:
+		except (mpd.socket.error, mpd.ConnectionError):
 			return False
 
 	def reconnect(self):
