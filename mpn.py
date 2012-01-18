@@ -494,7 +494,7 @@ class Notifier:
 			return True
 		else:
 			print "mpn: Lost connection to server, exiting...\n"
-			self.quit(1)
+			self.quit(code=1)
 			return False
 
 	# when idle calls back find out what changed
@@ -843,7 +843,7 @@ class Notifier:
 				break
 			print "Failed to connect to server " + self.host
 			if not self.options.persist:
-				self.quit(1)
+				self.quit(code=1)
 			time.sleep(5)
 
 # application class
