@@ -320,12 +320,21 @@ class Notifier:
 		if self.options.debug:
 			print "mpd command: %s" % command
 		if not self.options.once:
-			self.mpd.noidle()
-			self.mpd.fetch_idle()
-		command()
+			try:
+				self.mpd.noidle()
+				self.mpd.fetch_idle()
+			except (mpd.ConnectionError, mpd.socket.error):
+				self.reconnect()
+		while True:
+			try:
+				command()
+				self.mpd.send_idle("player")
+				break
+			except (mpd.ConnectionError, mpd.socket.error):
+				self.reconnect()
 		if self.options.once:
 			self.quit()
-		self.mpd.send_idle("player")
+		return True
 	def play_cb(self, *args, **kwargs):
 		self._mpd_command(self.mpd.play)
 	def pause_cb(self, *args, **kwargs):
@@ -344,10 +353,17 @@ class Notifier:
 			self.quit()
 
 	def player_cb(self, *args, **kwargs):
-		self.mpd.fetch_idle()
-		self.checkstate()
-		self.mpd.send_idle("player")
-		return True
+		try:
+			self.mpd.fetch_idle()
+		except (mpd.ConnectionError, mpd.socket.error):
+			self.reconnect()
+		while True:
+			try:
+				self.checkstate()
+				self.mpd.send_idle("player")
+				return True
+			except (mpd.ConnectionError, mpd.socket.error):
+				self.reconnect()
 
 	def on_activate(self, *args, **kwargs):
 		"""Status icon was clicked"""
@@ -468,14 +484,19 @@ class Notifier:
 	# --------------------------------------------------------------------------
 
 	def connect(self):
-		try:
-			self.mpd.connect(self.host, self.port)
-			return True
-		except mpd.socket.error:
-			return False
-		# Already connected
-		except mpd.ConnectionError:
-			return True
+		while True:
+			host = self.get_host()
+			port = self.get_port()
+			try:
+				self.mpd.connect(self.get_host(), self.get_port())
+				return True
+			except mpd.socket.error:
+				print "Failed to connect to %s:%s: socket error" % (host, port)
+			except mpd.ConnectionError:
+				print "Failed to connect to %s:%s: connection error" % (host, port)
+			if not self.options.persist:
+				return False
+			time.sleep(5)
 
 	def disconnect(self):
 		try:
@@ -489,13 +510,10 @@ class Notifier:
 	def reconnect(self):
 		# Ugly, but there's no mpd.isconnected() method
 		self.disconnect()
-		if self.options.persist:
-			self.connect()
-			return True
-		else:
-			print "mpn: Lost connection to server, exiting...\n"
+		if not self.options.persist:
+			print "Lost connection to server, exiting..."
 			self.quit(code=1)
-			return False
+		self.connect()
 
 	# when idle calls back find out what changed
 	# --------------------------------------------------------------------------
@@ -714,16 +732,24 @@ class Notifier:
 
 	def run(self):
 		"""Launch the first iteration"""
+		if not self.connect():
+			self.quit(code=1)
 		self.checkstate()
 		if not self.options.once:
 			self.mpd.send_idle("player")
 			gobject.io_add_watch(self.mpd, gobject.IO_IN, self.player_cb)
+		# We only need the main loop when iterating or if keys are enabled
+		if self.options.keys or not self.options.once:
+			gtk.main()
 
 	def quit(self, *args, **kwargs):
 		"""Shut down cleanly"""
 		self.close_notification()
 		self.disconnect()
-		gtk.main_quit()
+		try:
+			gtk.main_quit()
+		except RuntimeError:
+			pass # main wasn't running yet
 		try:
 			code = kwargs.code
 		except AttributeError:
@@ -828,23 +854,6 @@ class Notifier:
 			def handle_signal_usr1(*args, **kwargs):
 				self.on_activate()
 			signal.signal(signal.SIGUSR1, handle_signal_usr1)
-
-		# listen for kill signals and exit cleanly
-		def handle_exit_signal(*args, **kwargs):
-			self.quit()
-		signal.signal(signal.SIGINT, handle_exit_signal)
-		signal.signal(signal.SIGTERM, handle_exit_signal)
-
-		while True:
-			# Connection loop in case network is down / resolution fails
-			self.host = self.get_host()
-			self.port = self.get_port()
-			if self.connect():
-				break
-			print "Failed to connect to server " + self.host
-			if not self.options.persist:
-				self.quit(code=1)
-			time.sleep(5)
 
 # application class
 # ------------------------------------------------------------------------------
@@ -967,6 +976,12 @@ class Application:
 			print "Failed to initialize pynotify module"
 			sys.exit(1)
 
+		# listen for kill signals and exit cleanly
+		def handle_exit_signal(*args, **kwargs):
+			mpn.quit()
+		signal.signal(signal.SIGINT, handle_exit_signal)
+		signal.signal(signal.SIGTERM, handle_exit_signal)
+
 		mpn = Notifier(options=options)
 
 		# fork if necessary
@@ -977,11 +992,8 @@ class Application:
 		# run the notifier
 		try:
 			mpn.run()
-			# We only need the main loop when iterating or if keys are enabled
-			if options.keys or not options.once:
-				gtk.main()
 		except KeyboardInterrupt:
-			pass
+			mpn.quit()
 
 # defaults
 # ------------------------------------------------------------------------------
