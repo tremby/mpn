@@ -25,12 +25,4 @@ setup(
 				"Programming Language :: Python",
 				"Topic :: Multimedia :: Sound/Audio",
 				],
-		requires=[
-				"pyyaml",
-				"pygtk",
-				"mpd",
-				"pynotify",
-				"Image",
-				"numpy",
-				],
 		)
