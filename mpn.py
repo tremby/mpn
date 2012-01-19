@@ -995,7 +995,14 @@ class Application:
 				help="Do not exit when connection fails %s" % d("persist"))
 		parser.add_option("--no-persist", dest="persist", action="store_false", 
 				help=optparse.SUPPRESS_HELP)
+		def set_timeout(option, opt_str, value, parser):
+			value = int(value)
+			if value < 0:
+				raise optparse.OptionValueError("Timeout should be zero or a "
+						"positive integer")
+			parser.values.timeout = value
 		parser.add_option("-t", "--timeout", type="int", metavar="SECS", 
+				action="callback", callback=set_timeout, 
 				default=default_options["timeout"],
 				help="Notification timeout in secs (default %default, use 0 to "
 						"disable)")
@@ -1009,11 +1016,24 @@ class Application:
 				help="Notify once and exit %s" % d("once"))
 		parser.add_option("--no-once", dest="once", action="store_false", 
 				help=optparse.SUPPRESS_HELP)
+		def set_icon_size(option, opt_str, value, parser):
+			value = int(value)
+			if value < 1:
+				raise optparse.OptionValueError("Icon size should be a "
+						"positive integer")
+			parser.values.icon_size = value
 		parser.add_option("-s", "--icon-size", type="int", metavar="PIXELS", 
+				action="callback", callback=set_icon_size, 
 				default=default_options["icon_size"],
 				help="Size in pixels to which the cover art should be resized "
 						"in notifications (default: %default)")
-		parser.add_option("-m", "--music-path", metavar="PATH", 
+		def set_music_path(option, opt_str, value, parser):
+			if not os.path.isdir(value):
+				raise optparse.OptionValueError("Path '%s' given for music "
+						"path is not a directory" % value)
+			parser.values.music_path = value
+		parser.add_option("-m", "--music-path", type="string", metavar="PATH", 
+				action="callback", callback=set_music_path, 
 				default=default_options["music_path"],
 				help="Path to music files, where album art will be looked for "
 						"(default: %default, use empty string to disable)")
@@ -1022,7 +1042,14 @@ class Application:
 				help="Enable status icon %s" % d("status_icon"))
 		parser.add_option("--no-status-icon", dest="status_icon", 
 				action="store_false", help=optparse.SUPPRESS_HELP)
+		def set_play_state_icon_size(option, opt_str, value, parser):
+			value = float(value)
+			if value < 0 or value > 1:
+				raise optparse.OptionValueError("Play state icon size should "
+						"be a float between 0 and 1 inclusive")
+			parser.values.play_state_icon_size = value
 		parser.add_option("--play-state-icon-size", type="float", 
+				action="callback", callback=set_play_state_icon_size,
 				default=default_options["play_state_icon_size"],
 				help="Size of the play state (pause, stop, play) icon as a "
 						"proportion of the status icon size (default: "
