@@ -714,16 +714,11 @@ class Notifier:
 	def update_menu(self):
 		"""Hide/show the play, pause and stop buttons in the menu depending on 
 		play state"""
-		if self.status["state"] == "play":
-			self.menu_pause.show()
-			self.menu_play.hide()
-		else:
-			self.menu_pause.hide()
-			self.menu_play.show()
-		if self.status["state"] == "stop":
-			self.menu_stop.hide()
-		else:
-			self.menu_stop.show()
+		playing = self.status["state"] == "play"
+		self.menu_pause.set_sensitive(playing)
+		self.menu_play.set_sensitive(not playing)
+
+		self.menu_stop.set_sensitive(self.status["state"] != "stop")
 
 	# start and stop MPN
 	# --------------------------------------------------------------------------
