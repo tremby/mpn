@@ -38,19 +38,20 @@ AUTHOR_EMAIL = ", ".join((
 URL = "https://github.com/tremby/mpn"
 LICENSE = "GNU GPLv2+"
 
-import os, sys, cgi, time
+import os
+import sys
+import cgi
+import time
 import optparse
 import re
 import socket
-
-import gobject
-import gtk, glib
-import mpd
-import pynotify
-import yaml
 import signal
 import threading
 
+import gtk, glib, gobject
+import mpd
+import pynotify
+import yaml
 import Image
 import numpy
 

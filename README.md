@@ -21,9 +21,8 @@ The following python packages are needed:
 - python-notify
 - python-mpd
 - python-gtk2
-
-The following python packages are recommended:
-
+- python-yaml
+- python-numpy
 - python-imaging
 
 Installation and running
