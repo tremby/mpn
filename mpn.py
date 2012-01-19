@@ -49,6 +49,7 @@ import mpd
 import pynotify
 import yaml
 import signal
+import threading
 
 import Image
 import numpy
@@ -256,16 +257,24 @@ def make_svg(icon, s):
 		else:
 			pw = u / 3 + 1
 
+		e = u / 7.0
+		d = u * 0.5 - e
 		paths = {
+				"disconnected": [
+							[(1, e+1), (e, -e), (d, d), (d, -d),
+								(e, e), (-d, d), (d, d),
+								(-e, e), (-d, -d), (-d, d),
+								(-e, -e), (d, -d)],
+						],
 				"play": [
-						[(1, 1), (0, u), (u, -u/2.0)],
+							[(1, 1), (0, u), (u, -u*0.5)],
 						],
 				"stop": [
-						[(1, 1), (0, u), (u, 0), (0, -u)],
+							[(1, 1), (0, u), (u, 0), (0, -u)],
 						],
 				"pause": [
-						[(1, 1), (0, u), (pw, 0), (0, -u)],
-						[(u+1, 1), (0, u), (-pw, 0), (0, -u)],
+							[(1, 1), (0, u), (pw, 0), (0, -u)],
+							[(u+1, 1), (0, u), (-pw, 0), (0, -u)],
 						],
 				}
 
@@ -309,32 +318,38 @@ class Notifier:
 	status_icon_size = None
 	re = {}
 	menu = None
+	menu_reconnect = None
 	menu_play = None
 	menu_pause = None
 	menu_stop = None
+	menu_prev = None
+	menu_next = None
+	connection_timer = None
+	connection_lock = None
+	watch = None
 
 	# callbacks
 	# --------------------------------------------------------------------------
 
 	def _mpd_command(self, command):
-		if self.options.debug:
-			print "mpd command: %s" % command
-		if not self.options.once:
-			try:
-				self.mpd.noidle()
-				self.mpd.fetch_idle()
-			except (mpd.ConnectionError, mpd.socket.error):
-				self.reconnect()
-		while True:
-			try:
-				command()
+		with self.connection_lock:
+			if self.options.debug:
+				print "mpd command: %s" % command
+			if not self.options.once:
+				try:
+					self.mpd.noidle()
+					self.mpd.fetch_idle()
+				except (mpd.ConnectionError, mpd.socket.error):
+					if not self.reconnect():
+						return False
+					self.mpd.noidle()
+					self.mpd.fetch_idle()
+			command()
+			if self.options.once:
+				self.quit()
+			else:
 				self.mpd.send_idle("player")
-				break
-			except (mpd.ConnectionError, mpd.socket.error):
-				self.reconnect()
-		if self.options.once:
-			self.quit()
-		return True
+			return True
 	def play_cb(self, *args, **kwargs):
 		self._mpd_command(self.mpd.play)
 	def pause_cb(self, *args, **kwargs):
@@ -346,6 +361,10 @@ class Notifier:
 	def next_cb(self, *args, **kwargs):
 		self._mpd_command(self.mpd.next)
 
+	def reconnect_cb(self, *args, **kwargs):
+		with self.connection_lock:
+			self.connect()
+
 	def closed_cb(self, *args, **kwargs):
 		if self.options.debug:
 			print "Notification closed"
@@ -353,21 +372,26 @@ class Notifier:
 			self.quit()
 
 	def player_cb(self, *args, **kwargs):
-		try:
-			self.mpd.fetch_idle()
-		except (mpd.ConnectionError, mpd.socket.error):
-			self.reconnect()
-		while True:
+		if not self.connection_lock.acquire(False):
+			return True
+		with self.connection_lock:
+			self.connection_lock.release()
 			try:
+				try:
+					self.mpd.noidle()
+					self.mpd.fetch_idle()
+				except mpd.PendingCommandError:
+					pass
 				self.checkstate()
 				self.mpd.send_idle("player")
-				return True
 			except (mpd.ConnectionError, mpd.socket.error):
 				self.reconnect()
+			return True
 
 	def on_activate(self, *args, **kwargs):
 		"""Status icon was clicked"""
-		if self.status["state"] in ["play", "pause"]:
+		if self.status is not None \
+				and self.status["state"] in ["play", "pause"]:
 			self.notifier.show()
 
 	def on_popup_menu(self, icon, button, time):
@@ -484,86 +508,120 @@ class Notifier:
 	# --------------------------------------------------------------------------
 
 	def connect(self):
-		while True:
-			host = self.get_host()
-			port = self.get_port()
-			try:
-				self.mpd.connect(self.get_host(), self.get_port())
-				return True
-			except mpd.socket.error:
-				print "Failed to connect to %s:%s: socket error" % (host, port)
-			except mpd.ConnectionError:
-				print "Failed to connect to %s:%s: connection error" % (host, port)
-			if not self.options.persist:
-				return False
-			time.sleep(5)
-
-	def disconnect(self):
-		try:
-			self.mpd.disconnect()
-			return True
-		except (mpd.socket.error, mpd.ConnectionError):
+		# abort if we can't get a lock
+		if not self.connection_lock.acquire(False):
 			return False
 
+		with self.connection_lock:
+			# release the one grabbed just above so we can automatically release 
+			# on returns later
+			self.connection_lock.release()
+
+			# cancel existing timer if there is one
+			if self.connection_timer is not None:
+				self.connection_timer.cancel()
+				self.connection_timer = None
+
+			# get host and port (environment could have changed)
+			host = self.get_host()
+			port = self.get_port()
+
+			try:
+				self.mpd.connect(self.get_host(), self.get_port())
+				if not self.options.once and self.watch is None:
+					self.watch = gobject.io_add_watch(
+							self.mpd, gobject.IO_IN, self.player_cb)
+				self.checkstate()
+				if not self.options.once:
+					self.mpd.send_idle("player")
+				return True
+			except mpd.socket.error:
+				print "Failed to connect to %s:%s (socket error)" % (host, port)
+			except mpd.ConnectionError:
+				print "Failed to connect to %s:%s (connection error)" % (host, port)
+
+			if not self.options.persist:
+				return False
+
+			if self.connection_timer is None:
+				self.connection_timer = threading.Timer(3, self.connect)
+				self.connection_timer.start()
+			return False
+
+	def disconnect(self):
+		with self.connection_lock:
+			try:
+				self.mpd.disconnect()
+				self.status = None
+				self.current = None
+				self.update()
+				return True
+			except (mpd.socket.error, mpd.ConnectionError):
+				return False
+
 	def reconnect(self):
-		# Ugly, but there's no mpd.isconnected() method
-		self.disconnect()
-		if not self.options.persist:
-			print "Lost connection to server, exiting..."
-			self.quit(code=1)
-		self.connect()
+		with self.connection_lock:
+			# abort if there's already a connection attempt
+			if self.connection_timer is not None:
+				return False
+
+			self.disconnect()
+			if not self.options.persist:
+				print "Lost connection to server, exiting..."
+				self.quit(code=1)
+			tmp = self.connect()
+			return tmp
 
 	# when idle calls back find out what changed
 	# --------------------------------------------------------------------------
 
 	def checkstate(self):
 		"""Check what has changed, take action"""
-		if self.options.debug:
-			print "checking state"
-
-		# get state
-		try:
-			status = self.mpd.status()
-			current = self.mpd.currentsong()
-		except mpd.ConnectionError, (ce):
-			return self.reconnect()
-		except socket.error, (se):
-			return self.reconnect()
-
-		# if in "once" mode and no song is playing, exit
-		if self.options.once and status["state"] == "stop":
+		with self.connection_lock:
 			if self.options.debug:
-				print "Status is stopped, exiting"
-			sys.exit()
+				print "checking state"
 
-		# has status changed
-		status_changed = self.status is None or \
-				status["state"] != self.status["state"]
-		oldstatus = self.status
-		self.status = status
-		if self.options.debug and status_changed:
-			print "status has changed: ", status
+			# get state
+			try:
+				status = self.mpd.status()
+				current = self.mpd.currentsong()
+			except (mpd.ConnectionError, socket.error):
+				return self.reconnect()
 
-		# has song changed
-		song_changed = self.current is None or current != self.current
-		self.current = current
-		if self.options.debug and song_changed:
-			print "song has changed: ", current
+			# if in "once" mode and no song is playing, exit
+			if self.options.once and status["state"] == "stop":
+				if self.options.debug:
+					print "Status is stopped, exiting"
+				sys.exit()
 
-		# if stopped close the notification
-		if status["state"] == "stop":
-			self.close_notification()
+			# has status changed
+			status_changed = self.status is None or \
+					status["state"] != self.status["state"]
+			oldstatus = self.status
+			self.status = status
+			if self.options.debug and status_changed:
+				print "status has changed: ", status
 
-		# if anything important is different update icons, tooltip etc
-		if status_changed or song_changed:
-			self.update()
+			# has song changed
+			song_changed = self.current is None or current != self.current
+			self.current = current
+			if self.options.debug and song_changed:
+				print "song has changed: ", current
 
-		# if not stopped and the song changed, or was stopped and now not, 
-		# display the notification
-		if (oldstatus is None or oldstatus["state"] == "stop") \
-				and status["state"] != "stop" \
-				or song_changed and status["state"] != "stop":
-			self.show_notification()
+			# if stopped close the notification
+			if status["state"] == "stop":
+				self.close_notification()
+
+			# if anything important is different update icons, tooltip etc
+			if status_changed or song_changed:
+				self.update()
+
+			# if not stopped and the song changed, or was stopped and now not, 
+			# display the notification
+			if (oldstatus is None or oldstatus["state"] == "stop") \
+					and status["state"] != "stop" \
+					or song_changed and status["state"] != "stop":
+				self.show_notification()
 
 	# show or close the notification
 	# --------------------------------------------------------------------------
@@ -611,7 +669,7 @@ class Notifier:
 
 		self.pixbuf_statusicon = {}
 		p_size = int(round(si_size * self.options.play_state_icon_size))
-		for name in ("stop", "play", "pause"):
+		for name in ("disconnected", "stop", "play", "pause"):
 			self.pixbuf_statusicon[name] = si.copy()
 			if p_size == 0:
 				continue
@@ -627,10 +685,15 @@ class Notifier:
 	# --------------------------------------------------------------------------
 
 	def update(self):
-		"""Something we care about has changed -- take necessary actions"""
-		if "file" not in self.current:
-			title = "no song"
-			body = "no song is currently playing"
+		"""Something we care about has changed -- take necessary actions. This 
+		method does not talk to MPD but rather relies on information already 
+		gathered"""
+		if self.current is None:
+			title = "Disconnected"
+			body = "Not currently connected to MPD"
+		elif "file" not in self.current:
+			title = "No song"
+			body = "No song is currently playing"
 		else:
 			title = self.title_txt
 			body = self.body_txt
@@ -649,10 +712,18 @@ class Notifier:
 			print "Title string: " + title
 			print "Body string: " + body
 
+		if self.status is None:
+			state = "disconnected"
+		else:
+			state = self.status["state"]
+
 		if self.options.status_icon and not self.options.once:
 			# update tooltip
-			self.status_icon.set_tooltip(re.sub("<.*?>", "", "%s\n%s\n(%s)"
-					% (title, body, self.status["state"])))
+			if self.status is None:
+				self.status_icon.set_tooltip("Not connected")
+			else:
+				self.status_icon.set_tooltip(re.sub("<.*?>", "", "%s\n%s\n(%s)"
+						% (title, body, state)))
 
 			# update menu
 			self.update_menu()
@@ -671,16 +742,16 @@ class Notifier:
 		# have changed)
 		if self.options.status_icon and not self.options.once:
 			if self.options.debug:
-				print "setting icon, state %s" % self.status["state"]
-			self.status_icon.set_from_pixbuf(
-					self.pixbuf_statusicon[self.status["state"]])
+				print "setting icon, state %s" % state
+			self.status_icon.set_from_pixbuf(self.pixbuf_statusicon[state])
 
 	def regenerate_images_if_necessary(self):
 		"""Regenerate images for notification and status icon if necessary, 
 		return true if anything changed"""
 
 		coverpath = None
-		if "file" in self.current and self.options.music_path is not None:
+		if self.current is not None and \
+				"file" in self.current and self.options.music_path is not None:
 			dirname = os.path.dirname(
 					os.path.join(self.options.music_path, self.current["file"]))
 			for f in possible_cover_filenames():
@@ -712,33 +783,44 @@ class Notifier:
 		return generate_notification or generate_status
 
 	def update_menu(self):
-		"""Hide/show the play, pause and stop buttons in the menu depending on 
+		"""Activate/deactivate buttons in the menu depending on connection and 
 		play state"""
-		playing = self.status["state"] == "play"
-		self.menu_pause.set_sensitive(playing)
-		self.menu_play.set_sensitive(not playing)
+		if self.status is None:
+			for b in (self.menu_pause, self.menu_play, self.menu_stop, 
+					self.menu_prev, self.menu_next):
+				b.set_sensitive(False)
+			self.menu_reconnect.set_sensitive(True)
+		else:
+			self.menu_reconnect.set_sensitive(False)
+			self.menu_prev.set_sensitive(True)
+			self.menu_next.set_sensitive(True)
 
-		self.menu_stop.set_sensitive(self.status["state"] != "stop")
+			playing = self.status["state"] == "play"
+			self.menu_pause.set_sensitive(playing)
+			self.menu_play.set_sensitive(not playing)
+
+			self.menu_stop.set_sensitive(self.status["state"] != "stop")
 
 	# start and stop MPN
 	# --------------------------------------------------------------------------
 
 	def run(self):
-		"""Launch the first iteration"""
-		if not self.connect():
+		"""Connect and launch the first iteration"""
+		if not self.connect() \
+				and (not self.options.persist or self.options.once):
 			self.quit(code=1)
-		self.checkstate()
-		if not self.options.once:
-			self.mpd.send_idle("player")
-			gobject.io_add_watch(self.mpd, gobject.IO_IN, self.player_cb)
 		# We only need the main loop when iterating or if keys are enabled
 		if self.options.keys or not self.options.once:
+			gtk.gdk.threads_init()
 			gtk.main()
 
 	def quit(self, *args, **kwargs):
 		"""Shut down cleanly"""
-		self.close_notification()
+		if not self.options.once:
+			self.close_notification()
 		self.disconnect()
+		if self.connection_timer is not None:
+			self.connection_timer.cancel()
 		try:
 			gtk.main_quit()
 		except RuntimeError:
@@ -808,10 +890,20 @@ class Notifier:
 			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_PREVIOUS)
 			w.connect("activate", self.prev_cb)
 			self.menu.append(w)
+			self.menu_prev = w
 
 			w = gtk.ImageMenuItem(gtk.STOCK_MEDIA_NEXT)
 			w.connect("activate", self.next_cb)
 			self.menu.append(w)
+			self.menu_next = w
+
+			self.menu.append(gtk.SeparatorMenuItem())
+
+			w = gtk.ImageMenuItem(gtk.STOCK_REFRESH)
+			w.set_label("_Reconnect")
+			w.connect("activate", self.reconnect_cb)
+			self.menu.append(w)
+			self.menu_reconnect = w
 
 			self.menu.append(gtk.SeparatorMenuItem())
 
@@ -824,6 +916,8 @@ class Notifier:
 			self.menu.append(w)
 
 			self.menu.show_all()
+			if not self.options.persist:
+				self.menu_reconnect.hide()
 
 		# param timeout is in seconds
 		if self.options.timeout == 0:
@@ -847,6 +941,8 @@ class Notifier:
 			def handle_signal_usr1(*args, **kwargs):
 				self.on_activate()
 			signal.signal(signal.SIGUSR1, handle_signal_usr1)
+
+		self.connection_lock = threading.RLock()
 
 # application class
 # ------------------------------------------------------------------------------
