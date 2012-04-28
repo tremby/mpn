@@ -868,7 +868,8 @@ class Notifier:
 			self.status_icon.set_tooltip("MPN")
 			self.status_icon.set_visible(True)
 
-			self.notifier.attach_to_status_icon(self.status_icon)
+			if hasattr(self.notifier, "attach_to_status_icon"):
+				self.notifier.attach_to_status_icon(self.status_icon)
 
 			# popup menu
 			self.menu = gtk.Menu()
