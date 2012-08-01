@@ -1072,10 +1072,10 @@ class Application:
 						"<br> line break")
 		group.add_option("-F", "--title-format", 
 				default=default_options["title_format"], metavar="FORMAT",
-				help="Format for the notification header (defalut %default)")
+				help="Format for the notification header (default %default)")
 		group.add_option("-f", "--body-format", 
 				default=default_options["body_format"], metavar="FORMAT",
-				help="Format for the notification body (defalut %default)")
+				help="Format for the notification body (default %default)")
 		parser.add_option_group(group)
 
 		# parse the commandline
