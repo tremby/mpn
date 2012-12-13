@@ -870,6 +870,8 @@ class Notifier:
 
 			if hasattr(self.notifier, "attach_to_status_icon"):
 				self.notifier.attach_to_status_icon(self.status_icon)
+			if hasattr(self.notifier, "set_hint"):
+				self.notifier.set_hint("transient", 1)
 
 			# popup menu
 			self.menu = gtk.Menu()
