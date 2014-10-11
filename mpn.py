@@ -1091,7 +1091,7 @@ class Application:
 			print yaml.dump(DEFAULT_OPTIONS, default_flow_style=False)
 			sys.exit()
 
-		# initializate the notifier
+		# initialize the notifier
 		if not pynotify.init("mpn"):
 			print "Failed to initialize pynotify module"
 			sys.exit(1)
