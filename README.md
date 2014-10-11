@@ -37,23 +37,10 @@ The following python packages are needed:
 
 These can be installed in Ubuntu with the following command:
 
-    sudo aptitude install python-gtk2 python-imaging python-mpd python-notify2 python-numpy python-yaml
+    sudo aptitude install python-gtk2 python-imaging python-notify2 python-numpy python-yaml
+    sudo easy_install python-mpd2
 
 The prodecure may differ with different distributions or operating systems.
-
-However, there exists a bug in the current MPD client library (as of version 
-0.3.0) which doesn't allow the `noidle` command to work properly. It's an easy 
-fix and I've submitted [a bug report][bugreport] and [patch][patch] for this but 
-it hasn't been merged yet so you'll have to patch your own python-mpd. It's easy 
-to do:
-
-    git clone git://jatreuman.indefero.net/jatreuman/python-mpd.git
-    cd python-mpd
-    curl http://jatreuman.indefero.net/p/python-mpd/issues/attachment/3/0001-Skip-PendingCommandError-for-noidle-command.patch | git apply
-    sudo python setup.py install
-
-[bugreport]: http://jatreuman.indefero.net/p/python-mpd/issues/8/
-[patch]: http://jatreuman.indefero.net/p/python-mpd/issues/attachment/3/0001-Skip-PendingCommandError-for-noidle-command.patch
 
 Installation and running
 ------------------------
