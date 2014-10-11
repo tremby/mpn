@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 """
 
 NAME = "MPNotifier"
-VERSION = "1.3"
+VERSION = "1.4"
 DESCRIPTION = "A lightweight notifier for MPD"
 AUTHOR = ", ".join((
 		"Olivier Schwander",
