@@ -1007,7 +1007,10 @@ class Application:
 						"disable)")
 		parser.add_option("-k", "--keys", action="store_true", 
 				default=default_options["keys"],
-				help="Add Prev/Next buttons to notify window %s" % d("keys"))
+				help="Add Prev/Next buttons to notify window %s Note: if the "
+						"notifications server doesn't support this it may fall "
+						"back to ugly popup dialogs when this is enabled."
+						% d("keys"))
 		parser.add_option("--no-keys", dest="keys", action="store_false", 
 				help=optparse.SUPPRESS_HELP)
 		parser.add_option("-o", "--once", action="store_true", 
@@ -1119,7 +1122,7 @@ DEFAULT_OPTIONS = {
 	"debug": False,
 	"persist": True,
 	"timeout": 3,
-	"keys": True,
+	"keys": False,
 	"icon_size": 128,
 	"music_path": "/var/lib/mpd/music",
 	"title_format": "%t",
