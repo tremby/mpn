@@ -30,14 +30,14 @@ The following python packages are needed:
 
 - gtk, glib, gobject
 - mpd
-- pynotify
+- notify2
 - yaml
 - Image
 - numpy
 
 These can be installed in Ubuntu with the following command:
 
-    sudo aptitude install python-gtk2 python-imaging python-mpdclient python-notify python-numpy python-yaml
+    sudo aptitude install python-gtk2 python-imaging python-mpdclient python-notify2 python-numpy python-yaml
 
 The prodecure may differ with different distributions or operating systems.
 

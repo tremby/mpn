@@ -50,7 +50,7 @@ import threading
 
 import gtk, glib, gobject
 import mpd
-import pynotify
+import notify2
 import yaml
 import Image
 import numpy
@@ -836,7 +836,7 @@ class Notifier:
 	# --------------------------------------------------------------------------
 
 	def __init__(self, options):
-		"""Initialisation of mpd client and pynotify"""
+		"""Initialisation of mpd client and notify2"""
 		self.options = options
 
 		# regular expressions
@@ -851,7 +851,7 @@ class Notifier:
 				}
 
 		# Contents are updated before displaying
-		self.notifier = pynotify.Notification("MPN")
+		self.notifier = notify2.Notification("MPN")
 
 		# set closed handler
 		self.notifier.connect("closed", self.closed_cb)
@@ -867,11 +867,6 @@ class Notifier:
 					svg_to_pixbuf(make_svg("cd", self.status_icon.get_size())))
 			self.status_icon.set_tooltip("MPN")
 			self.status_icon.set_visible(True)
-
-			if hasattr(self.notifier, "attach_to_status_icon"):
-				self.notifier.attach_to_status_icon(self.status_icon)
-			if hasattr(self.notifier, "set_hint"):
-				self.notifier.set_hint("transient", 1)
 
 			# popup menu
 			self.menu = gtk.Menu()
@@ -925,13 +920,13 @@ class Notifier:
 
 		# param timeout is in seconds
 		if self.options.timeout == 0:
-			self.notifier.set_timeout(pynotify.EXPIRES_NEVER)
+			self.notifier.set_timeout(notify2.EXPIRES_NEVER)
 		else:
 			self.notifier.set_timeout(1000 * self.options.timeout)
 
 		if self.options.keys:
-			self.notifier.add_action("back", "&lt;&lt;", self.prev_cb)
-			self.notifier.add_action("forward", "&gt;&gt;", self.next_cb)
+			self.notifier.add_action("back", "<", self.prev_cb)
+			self.notifier.add_action("forward", ">", self.next_cb)
 
 		self.title_txt = re.sub("<br>", "\n", self.options.title_format)
 		self.body_txt = re.sub("<br>", "\n", self.options.body_format)
@@ -1092,8 +1087,8 @@ class Application:
 			sys.exit()
 
 		# initialize the notifier
-		if not pynotify.init("mpn"):
-			print "Failed to initialize pynotify module"
+		if not notify2.init("mpn", "glib"):
+			print "Failed to initialize notify2 module"
 			sys.exit(1)
 
 		# listen for kill signals and exit cleanly
