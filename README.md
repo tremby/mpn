@@ -37,7 +37,7 @@ The following python packages are needed:
 
 These can be installed in Ubuntu with the following command:
 
-    sudo aptitude install python-gtk2 python-imaging python-mpdclient python-notify2 python-numpy python-yaml
+    sudo aptitude install python-gtk2 python-imaging python-mpd python-notify2 python-numpy python-yaml
 
 The prodecure may differ with different distributions or operating systems.
 
