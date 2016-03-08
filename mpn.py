@@ -643,15 +643,21 @@ class Notifier:
 	# --------------------------------------------------------------------------
 
 	def generate_notification_image(self):
-		if self.current_image_url is None:
+		def useCd():
 			self.pixbuf_notification = svg_to_pixbuf(
 					make_svg("cd", self.options.icon_size))
+
+		if self.current_image_url is None:
+			useCd()
 		else:
-			self.pixbuf_notification = gtk.gdk.pixbuf_new_from_array(
-					numpy.array(Image.open(self.current_image_url).resize(
-							(self.options.icon_size, self.options.icon_size),
-							Image.ANTIALIAS)),
-					gtk.gdk.COLORSPACE_RGB, 8)
+			try:
+				self.pixbuf_notification = gtk.gdk.pixbuf_new_from_array(
+						numpy.array(Image.open(self.current_image_url).resize(
+								(self.options.icon_size, self.options.icon_size),
+								Image.ANTIALIAS)),
+						gtk.gdk.COLORSPACE_RGB, 8)
+			except TypeError:
+				useCd()
 
 	def generate_status_image(self):
 		si_size = self.status_icon.get_size()
@@ -660,10 +666,13 @@ class Notifier:
 		if self.current_image_url is None:
 			si = svg_to_pixbuf(make_svg("cd", si_size))
 		else:
-			si = gtk.gdk.pixbuf_new_from_array(
-					numpy.array(Image.open(self.current_image_url).resize(
-							(si_size, si_size), Image.ANTIALIAS)),
-					gtk.gdk.COLORSPACE_RGB, 8)
+			try:
+				si = gtk.gdk.pixbuf_new_from_array(
+						numpy.array(Image.open(self.current_image_url).resize(
+								(si_size, si_size), Image.ANTIALIAS)),
+						gtk.gdk.COLORSPACE_RGB, 8)
+			except TypeError:
+				si = svg_to_pixbuf(make_svg("cd", si_size))
 
 		if not si.get_has_alpha():
 			si = si.add_alpha(True, 0, 0, 0)
