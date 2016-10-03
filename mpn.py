@@ -651,7 +651,7 @@ class Notifier:
 		else:
 			try:
 				self.pixbuf_notification = gtk.gdk.pixbuf_new_from_array(
-						numpy.array(Image.open(self.current_image_url).resize(
+						numpy.array(Image.open(self.current_image_url).convert('RGB').resize(
 								(self.options.icon_size, self.options.icon_size),
 								Image.ANTIALIAS)),
 						gtk.gdk.COLORSPACE_RGB, 8)
