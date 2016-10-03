@@ -88,7 +88,7 @@ def fileexists_insensitive(path):
 	return False
 
 def possible_cover_filenames():
-	"""return a whole bunch of possible filenames for cover art"""
+	"""Generate a whole bunch of possible filenames for cover art"""
 	PREFIXES = [
 		"",
 		".",
@@ -111,8 +111,7 @@ def possible_cover_filenames():
 	for pre in PREFIXES:
 		for mid in MIDDLES:
 			for suf in SUFFIXES:
-				filenames.append(pre + mid + suf)
-	return filenames
+				yield pre + mid + suf
 
 # svg
 # ------------------------------------------------------------------------------
