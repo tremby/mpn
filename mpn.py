@@ -667,7 +667,7 @@ class Notifier:
 		else:
 			try:
 				si = gtk.gdk.pixbuf_new_from_array(
-						numpy.array(Image.open(self.current_image_url).resize(
+						numpy.array(Image.open(self.current_image_url).convert('RGB').resize(
 								(si_size, si_size), Image.ANTIALIAS)),
 						gtk.gdk.COLORSPACE_RGB, 8)
 			except TypeError:
